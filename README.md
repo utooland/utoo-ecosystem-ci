@@ -6,9 +6,7 @@
 
 <h1 align="center">utoopack-ecosystem-ci</h1>
 
-Ecosystem CI for validating an `@utoo/pack` candidate against real frontend frameworks and applications. The design follows the useful part of [rstack-ecosystem-ci](https://github.com/rstackjs/rstack-ecosystem-ci): clone current consumers, inject the candidate package, run isolated suites in a matrix, and support both published releases and source commits.
-
-The first version intentionally omits the Rstack history website, release automation, and PR-comment plumbing. Those can be added after the core compatibility signal proves stable.
+Continuously validates published releases and source-built `@utoo/pack` candidates against Umi, Ant Design Pro, Father, Dumi, and EVJS. Each suite injects the candidate into a fresh consumer checkout, runs its real utoopack build or E2E workflow in isolation, and verifies the expected output.
 
 ## Suites
 
