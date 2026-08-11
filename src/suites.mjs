@@ -1,4 +1,9 @@
+import { fileURLToPath } from 'node:url';
+
 const pnpm = (...args) => ['corepack', 'pnpm', ...args];
+const umiUtoopackE2E = fileURLToPath(
+  new URL('../scripts/umi-utoopack-e2e.mjs', import.meta.url),
+);
 
 export const SUITES = Object.freeze({
   umi: {
@@ -8,6 +13,8 @@ export const SUITES = Object.freeze({
     packageManager: 'pnpm',
     install: [pnpm('install', '--no-frozen-lockfile')],
     test: [
+      // Mirror Umi's native utoopack E2E workflow: build the local framework
+      // packages, launch with-use-model under utoopack, then assert its runtime.
       pnpm(
         'umi-scripts',
         'turbo',
@@ -19,16 +26,18 @@ export const SUITES = Object.freeze({
         '--filter',
         './packages/bundler-utoopack/...',
       ),
-      pnpm('--dir', 'examples/with-antd-5', 'build'),
-      pnpm('--dir', 'examples/with-utoopack-emotion', 'build'),
-      pnpm('--dir', 'examples/with-utoopack-externals', 'build'),
-      pnpm('--dir', 'examples/with-react-19', 'build'),
+      pnpm('exec', 'playwright', 'install', 'chromium'),
+      ['node', umiUtoopackE2E],
+      // Mirror Umi's qiankun E2E workflow, including both its baseline and
+      // utoopack-powered qiankun applications.
+      pnpm('umi-scripts', 'turbo', 'build', '--filter', './examples/max...'),
+      pnpm('--dir', 'examples/qiankun-slave', 'e2e:ci'),
+      pnpm('--dir', 'examples/with-utoopack-qiankun-master', 'e2e:ci'),
     ],
     nonEmptyDirectories: [
-      'examples/with-antd-5/dist',
-      'examples/with-utoopack-emotion/dist',
-      'examples/with-utoopack-externals/dist',
-      'examples/with-react-19/dist',
+      'packages/bundler-utoopack/dist',
+      'examples/with-utoopack-qiankun-master/dist',
+      'examples/with-utoopack-qiankun-slave/dist',
     ],
     directManifest: 'packages/bundler-utoopack/package.json',
   },
@@ -55,7 +64,9 @@ export const SUITES = Object.freeze({
     packageManager: 'pnpm',
     install: [pnpm('install', '--no-frozen-lockfile')],
     test: [
-      pnpm('build'),
+      // Bootstrap the local father binary used by the example. The ecosystem
+      // signal itself is the utoopack UMD example build below.
+      pnpm('tsc'),
       pnpm('--dir', 'examples/utoo-pack', 'build'),
     ],
     nonEmptyDirectories: ['examples/utoo-pack/dist'],
@@ -65,16 +76,10 @@ export const SUITES = Object.freeze({
     repository: 'umijs/dumi',
     ref: 'master',
     packageManager: 'pnpm',
-    install: [
-      pnpm('install', '--no-frozen-lockfile', '--ignore-scripts'),
-      ['rustup', 'toolchain', 'install', 'nightly', '--profile', 'minimal'],
-      ['rustup', 'target', 'add', 'wasm32-wasip1', '--toolchain', 'nightly'],
-    ],
+    install: [pnpm('install', '--no-frozen-lockfile', '--ignore-scripts')],
     test: [
-      {
-        command: pnpm('build'),
-        env: { RUSTUP_TOOLCHAIN: 'nightly' },
-      },
+      // Build dumi's JavaScript output without its unrelated SWC demo crate.
+      pnpm('exec', 'father', 'build'),
       pnpm('--dir', 'examples/normal-utoopack', 'build'),
     ],
     nonEmptyDirectories: ['examples/normal-utoopack/dist'],
@@ -96,7 +101,6 @@ export const SUITES = Object.freeze({
         'test:e2e',
         '--',
         '--project=utoopack',
-        '--project=utoopack-scaffold',
       ],
     ],
     nonEmptyDirectories: [

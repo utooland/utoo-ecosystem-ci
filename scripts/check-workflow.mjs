@@ -26,4 +26,5 @@ assert.doesNotMatch(
   /candidate\/utoo\/package-lock\.json/,
   'The utoo source checkout does not contain a root package-lock.json',
 );
+assert.match(workflow, /- name: Enable Corepack\n\s+run: corepack enable/);
 console.log('Workflow policy checks passed');
