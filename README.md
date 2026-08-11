@@ -12,11 +12,11 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 
 | Suite | Consumer | E2E coverage |
 | --- | --- | --- |
-| `umi` | `umijs/umi@master` | Builds the Umi/plugin/utoopack packages, then builds four maintained utoopack examples |
+| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E plus its qiankun slave and utoopack master E2Es |
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
-| `dumi` | `umijs/dumi@master` | Builds Dumi and its WASM crate, then builds the utoopack documentation example |
-| `evjs` | `afx-team/evjs@main` | Builds the EVJS packages with its default `bundler-utoopack`, then runs the `utoopack` and `utoopack-scaffold` Playwright projects |
+| `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds a minimal site based on Dumi's official template with utoopack |
+| `evjs` | `afx-team/evjs@main` | Builds EVJS packages and runs its `bundler-utoopack` Playwright project |
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
@@ -24,7 +24,7 @@ For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack
 
 ## Run locally
 
-Requirements: Node.js 22, Git, and [Utoo](https://github.com/utooland/utoo) 1.1.7. Dumi also needs Rustup because its build compiles a WASM crate.
+Requirements: Node.js 22, Git, and [Utoo](https://github.com/utooland/utoo) 1.1.7.
 
 ```bash
 ut install
