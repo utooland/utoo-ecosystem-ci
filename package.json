@@ -1,0 +1,21 @@
+{
+  "name": "utoopack-ecosystem-ci",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ecosystem CI for validating Utoopack against Umi, Ant Design Pro, Father, and Dumi",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "check:workflow": "node scripts/check-workflow.mjs",
+    "ecosystem": "node src/cli.mjs",
+    "lint": "utoo-lint --no-config --rules=no-debugger,no-unused-vars,prefer-const,eqeqeq,use-isnan,valid-typeof,no-constant-condition,no-dupe-keys,no-duplicate-imports src scripts test",
+    "test": "node --test test/*.test.mjs"
+  },
+  "packageManager": "utoo@1.1.7",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@utoo/lint": "0.2.1"
+  }
+}

@@ -1,0 +1,358 @@
+name: Utoopack ecosystem CI
+
+on:
+  workflow_call:
+    inputs:
+      candidate_mode:
+        description: Use an npm release/tag or build an utoo source ref
+        required: false
+        type: string
+        default: npm
+      pack_spec:
+        description: npm version or dist-tag used in npm mode
+        required: false
+        type: string
+        default: latest
+      utoo_repository:
+        description: utoo source repository used in source mode
+        required: false
+        type: string
+        default: utooland/utoo
+      utoo_ref:
+        description: utoo branch, tag, or commit used in source mode
+        required: false
+        type: string
+        default: next
+      suite:
+        description: Suite name or all
+        required: false
+        type: string
+        default: all
+      consumer_ref:
+        description: Optional branch, tag, or commit applied to the selected consumer
+        required: false
+        type: string
+        default: ''
+      harness_repository:
+        description: Repository containing this workflow; required for cross-repository workflow_call
+        required: false
+        type: string
+        default: ''
+      harness_ref:
+        description: Ref of the harness repository
+        required: false
+        type: string
+        default: main
+  workflow_dispatch:
+    inputs:
+      candidate_mode:
+        description: Candidate source
+        required: true
+        type: choice
+        options:
+          - npm
+          - source
+        default: npm
+      pack_spec:
+        description: npm version or dist-tag (npm mode)
+        required: true
+        type: string
+        default: latest
+      utoo_repository:
+        description: utoo repository (source mode)
+        required: true
+        type: string
+        default: utooland/utoo
+      utoo_ref:
+        description: utoo branch, tag, or commit (source mode)
+        required: true
+        type: string
+        default: next
+      suite:
+        description: Consumer suite
+        required: true
+        type: choice
+        options:
+          - all
+          - umi
+          - ant-design-pro
+          - father
+          - dumi
+        default: all
+      consumer_ref:
+        description: Optional ref for the selected consumer
+        required: false
+        type: string
+        default: ''
+  repository_dispatch:
+    types: [utoopack-ecosystem-ci]
+  schedule:
+    - cron: '30 1 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: --max-old-space-size=6144
+
+jobs:
+  config:
+    name: Resolve configuration
+    runs-on: ubuntu-latest
+    outputs:
+      candidate_mode: ${{ steps.resolve.outputs.candidate_mode }}
+      pack_spec: ${{ steps.resolve.outputs.pack_spec }}
+      utoo_repository: ${{ steps.resolve.outputs.utoo_repository }}
+      utoo_ref: ${{ steps.resolve.outputs.utoo_ref }}
+      consumer_ref: ${{ steps.resolve.outputs.consumer_ref }}
+      harness_repository: ${{ steps.resolve.outputs.harness_repository }}
+      harness_ref: ${{ steps.resolve.outputs.harness_ref }}
+      matrix: ${{ steps.resolve.outputs.matrix }}
+    steps:
+      - name: Resolve and validate inputs
+        id: resolve
+        shell: bash
+        env:
+          INPUT_CANDIDATE_MODE: ${{ inputs.candidate_mode }}
+          INPUT_PACK_SPEC: ${{ inputs.pack_spec }}
+          INPUT_UTOO_REPOSITORY: ${{ inputs.utoo_repository }}
+          INPUT_UTOO_REF: ${{ inputs.utoo_ref }}
+          INPUT_SUITE: ${{ inputs.suite }}
+          INPUT_CONSUMER_REF: ${{ inputs.consumer_ref }}
+          INPUT_HARNESS_REPOSITORY: ${{ inputs.harness_repository }}
+          INPUT_HARNESS_REF: ${{ inputs.harness_ref }}
+          PAYLOAD_CANDIDATE_MODE: ${{ github.event.client_payload.candidate_mode }}
+          PAYLOAD_PACK_SPEC: ${{ github.event.client_payload.pack_spec }}
+          PAYLOAD_UTOO_REPOSITORY: ${{ github.event.client_payload.utoo_repository }}
+          PAYLOAD_UTOO_REF: ${{ github.event.client_payload.utoo_ref }}
+          PAYLOAD_SUITE: ${{ github.event.client_payload.suite }}
+          PAYLOAD_CONSUMER_REF: ${{ github.event.client_payload.consumer_ref }}
+          CURRENT_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          candidate_mode="${INPUT_CANDIDATE_MODE:-${PAYLOAD_CANDIDATE_MODE:-npm}}"
+          pack_spec="${INPUT_PACK_SPEC:-${PAYLOAD_PACK_SPEC:-latest}}"
+          utoo_repository="${INPUT_UTOO_REPOSITORY:-${PAYLOAD_UTOO_REPOSITORY:-utooland/utoo}}"
+          utoo_ref="${INPUT_UTOO_REF:-${PAYLOAD_UTOO_REF:-next}}"
+          suite="${INPUT_SUITE:-${PAYLOAD_SUITE:-all}}"
+          consumer_ref="${INPUT_CONSUMER_REF:-${PAYLOAD_CONSUMER_REF:-}}"
+          harness_repository="${INPUT_HARNESS_REPOSITORY:-${CURRENT_REPOSITORY}}"
+          harness_ref="${INPUT_HARNESS_REF:-main}"
+
+          case "$candidate_mode" in npm|source) ;; *) echo "Invalid candidate_mode: $candidate_mode" >&2; exit 2 ;; esac
+          case "$suite" in
+            all) matrix='["umi","ant-design-pro","father","dumi"]' ;;
+            umi|ant-design-pro|father|dumi) matrix="[\"${suite}\"]" ;;
+            *) echo "Invalid suite: $suite" >&2; exit 2 ;;
+          esac
+
+          repository_pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+          ref_pattern='^[A-Za-z0-9._/-]+$'
+          spec_pattern='^[A-Za-z0-9._+~^=-]+$'
+          [[ "$utoo_repository" =~ $repository_pattern ]] || { echo "Invalid utoo_repository" >&2; exit 2; }
+          [[ "$harness_repository" =~ $repository_pattern ]] || { echo "Invalid harness_repository" >&2; exit 2; }
+          [[ "$utoo_ref" =~ $ref_pattern ]] || { echo "Invalid utoo_ref" >&2; exit 2; }
+          [[ "$harness_ref" =~ $ref_pattern ]] || { echo "Invalid harness_ref" >&2; exit 2; }
+          [[ -z "$consumer_ref" || "$consumer_ref" =~ $ref_pattern ]] || { echo "Invalid consumer_ref" >&2; exit 2; }
+          [[ "$pack_spec" =~ $spec_pattern ]] || { echo "Invalid pack_spec" >&2; exit 2; }
+          [[ "$utoo_ref" != *..* && "$harness_ref" != *..* && "$consumer_ref" != *..* ]] || { echo "Refs must not contain '..'" >&2; exit 2; }
+
+          {
+            echo "candidate_mode=$candidate_mode"
+            echo "pack_spec=$pack_spec"
+            echo "utoo_repository=$utoo_repository"
+            echo "utoo_ref=$utoo_ref"
+            echo "consumer_ref=$consumer_ref"
+            echo "harness_repository=$harness_repository"
+            echo "harness_ref=$harness_ref"
+            echo "matrix=$matrix"
+          } >> "$GITHUB_OUTPUT"
+
+  prepare_candidate:
+    name: Build source candidate
+    needs: config
+    if: needs.config.outputs.candidate_mode == 'source'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout ecosystem harness
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ needs.config.outputs.harness_repository }}
+          ref: ${{ needs.config.outputs.harness_ref }}
+          persist-credentials: false
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /usr/share/swift /usr/local/.ghcup /usr/share/miniconda
+          sudo docker image prune --all --force
+
+      - name: Checkout utoo candidate
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ needs.config.outputs.utoo_repository }}
+          ref: ${{ needs.config.outputs.utoo_ref }}
+          path: candidate/utoo
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Initialize utoo submodules
+        working-directory: candidate/utoo
+        run: git submodule update --init --recursive --depth 1
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: candidate/utoo/package-lock.json
+
+      - name: Setup Utoo
+        uses: utooland/setup-utoo@e63ce40ce5f7e9838c666a57479344e91c3a9795 # v1
+        with:
+          utoo-version: 1.1.7
+          cache-store: true
+
+      - name: Install utoo dependencies
+        working-directory: candidate/utoo
+        run: ut install
+        env:
+          HUSKY: '0'
+
+      - name: Show Rust toolchain
+        working-directory: candidate/utoo
+        run: rustup show active-toolchain
+
+      - name: Build and pack candidate
+        run: node scripts/prepare-candidate.mjs --source candidate/utoo --out candidate-artifacts
+
+      - name: Upload candidate packages
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: utoopack-candidate
+          path: candidate-artifacts/
+          if-no-files-found: error
+          retention-days: 3
+
+  harness_check:
+    name: Check ecosystem harness
+    needs: config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout ecosystem harness
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ needs.config.outputs.harness_repository }}
+          ref: ${{ needs.config.outputs.harness_ref }}
+          persist-credentials: false
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+
+      - name: Setup Utoo
+        uses: utooland/setup-utoo@e63ce40ce5f7e9838c666a57479344e91c3a9795 # v1
+        with:
+          utoo-version: 1.1.7
+
+      - name: Install harness dependencies
+        run: ut install
+
+      - name: Run harness tests
+        run: ut test
+
+      - name: Lint harness
+        run: ut lint
+
+      - name: Check workflow policy
+        run: ut check:workflow
+
+  ecosystem:
+    name: ${{ matrix.suite }} E2E
+    needs: [config, prepare_candidate, harness_check]
+    if: >-
+      always() &&
+      needs.config.result == 'success' &&
+      needs.harness_check.result == 'success' &&
+      (needs.prepare_candidate.result == 'success' || needs.prepare_candidate.result == 'skipped')
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.config.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout ecosystem harness
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ needs.config.outputs.harness_repository }}
+          ref: ${{ needs.config.outputs.harness_ref }}
+          persist-credentials: false
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+
+      - name: Download source candidate
+        if: needs.config.outputs.candidate_mode == 'source'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: utoopack-candidate
+          path: candidate-artifacts
+
+      - name: Run ecosystem suite
+        shell: bash
+        env:
+          CANDIDATE_MODE: ${{ needs.config.outputs.candidate_mode }}
+          PACK_SPEC: ${{ needs.config.outputs.pack_spec }}
+          CONSUMER_REF: ${{ needs.config.outputs.consumer_ref }}
+          SUITE: ${{ matrix.suite }}
+        run: |
+          set -euo pipefail
+
+          pack_spec="$PACK_SPEC"
+          pack_shared_spec="$PACK_SPEC"
+          if [[ "$CANDIDATE_MODE" == source ]]; then
+            pack_spec="$GITHUB_WORKSPACE/candidate-artifacts/utoo-pack.tgz"
+            pack_shared_spec="$GITHUB_WORKSPACE/candidate-artifacts/utoo-pack-shared.tgz"
+          fi
+
+          args=(
+            --suite "$SUITE"
+            --pack "$pack_spec"
+            --pack-shared "$pack_shared_spec"
+            --workspace "$GITHUB_WORKSPACE/workspace"
+          )
+          if [[ -n "$CONSUMER_REF" ]]; then
+            args+=(--ref "$CONSUMER_REF")
+          fi
+          node src/cli.mjs "${args[@]}"
+
+  ecosystem_ci_success:
+    name: Utoopack ecosystem CI success
+    needs: [config, prepare_candidate, harness_check, ecosystem]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required jobs
+        shell: bash
+        env:
+          CONFIG_RESULT: ${{ needs.config.result }}
+          PREPARE_RESULT: ${{ needs.prepare_candidate.result }}
+          HARNESS_RESULT: ${{ needs.harness_check.result }}
+          ECOSYSTEM_RESULT: ${{ needs.ecosystem.result }}
+        run: |
+          set -euo pipefail
+          [[ "$CONFIG_RESULT" == success ]]
+          [[ "$PREPARE_RESULT" == success || "$PREPARE_RESULT" == skipped ]]
+          [[ "$HARNESS_RESULT" == success ]]
+          [[ "$ECOSYSTEM_RESULT" == success ]]
