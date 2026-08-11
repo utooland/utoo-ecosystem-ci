@@ -8,7 +8,7 @@
   "scripts": {
     "check:workflow": "node scripts/check-workflow.mjs",
     "ecosystem": "node src/cli.mjs",
-    "lint": "utoo-lint --no-config --rules=no-debugger,no-unused-vars,prefer-const,eqeqeq,use-isnan,valid-typeof,no-constant-condition,no-dupe-keys,no-duplicate-imports src scripts test",
+    "lint": "utoo-lint --no-config --rules=no-debugger,no-unused-vars,prefer-const,eqeqeq,use-isnan,valid-typeof,no-constant-condition,no-dupe-keys,no-duplicate-imports src scripts test fixtures",
     "test": "node --test test/*.test.mjs"
   },
   "packageManager": "utoo@1.1.7",

@@ -1,0 +1,7 @@
+{
+  "name": "@examples/utoopack-ecosystem-ci",
+  "private": true,
+  "scripts": {
+    "build": "node ../../bin/dumi.js build"
+  }
+}

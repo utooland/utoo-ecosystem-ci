@@ -4,6 +4,9 @@ const pnpm = (...args) => ['corepack', 'pnpm', ...args];
 const umiUtoopackE2E = fileURLToPath(
   new URL('../scripts/umi-utoopack-e2e.mjs', import.meta.url),
 );
+const prepareDumiExample = fileURLToPath(
+  new URL('../scripts/prepare-dumi-example.mjs', import.meta.url),
+);
 
 export const SUITES = Object.freeze({
   umi: {
@@ -76,42 +79,17 @@ export const SUITES = Object.freeze({
     repository: 'umijs/dumi',
     ref: 'master',
     packageManager: 'pnpm',
-    install: [
-      pnpm('install', '--no-frozen-lockfile', '--ignore-scripts'),
-      ['rustup', 'toolchain', 'install', 'nightly', '--profile', 'minimal'],
-      ['rustup', 'target', 'add', 'wasm32-wasip1', '--toolchain', 'nightly'],
-    ],
+    install: [pnpm('install', '--no-frozen-lockfile', '--ignore-scripts')],
     test: [
-      // Build dumi's JavaScript output separately so its required SWC plugin
-      // can use linker flags compatible with current Rust toolchains.
+      // Build the local Dumi source, then validate it with a minimal site based
+      // on Dumi's official site template. The fixture intentionally has no
+      // React demos, so the signal stays focused on Dumi + utoopack and does
+      // not spend tens of minutes compiling Dumi's auxiliary SWC demo plugin.
       pnpm('exec', 'father', 'build'),
-      // The example imports this SWC plugin at build time. New Rust toolchains
-      // require explicitly allowing the host imports provided by @swc/core.
-      {
-        command: [
-          'cargo',
-          'build',
-          '--target',
-          'wasm32-wasip1',
-          '--release',
-          '--artifact-dir',
-          'compiled/crates',
-          '-Z',
-          'unstable-options',
-          '-p',
-          'swc_plugin_react_demo',
-        ],
-        env: {
-          // LTO is useful for published artifacts, but makes this tiny fixture
-          // take close to an hour on a cold GitHub runner.
-          CARGO_PROFILE_RELEASE_LTO: 'false',
-          RUSTFLAGS: '-C link-arg=--allow-undefined',
-          RUSTUP_TOOLCHAIN: 'nightly',
-        },
-      },
-      pnpm('--dir', 'examples/normal-utoopack', 'build'),
+      ['node', prepareDumiExample],
+      pnpm('--dir', 'examples/utoopack-ecosystem-ci', 'build'),
     ],
-    nonEmptyDirectories: ['examples/normal-utoopack/dist'],
+    nonEmptyDirectories: ['examples/utoopack-ecosystem-ci/dist'],
   },
   evjs: {
     title: 'EVJS',

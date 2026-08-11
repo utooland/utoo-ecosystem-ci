@@ -66,24 +66,19 @@ test('Father validates only its utoopack UMD example', () => {
   ]);
 });
 
-test('Dumi builds its required WASM plugin and utoopack example', () => {
+test('Dumi builds its local source with a minimal utoopack site example', () => {
   const install = SUITES.dumi.install.map((command) => command.join(' '));
-  const testCommands = SUITES.dumi.test.map((item) =>
-    (Array.isArray(item) ? item : item.command).join(' '),
-  );
+  const testCommands = SUITES.dumi.test.map((command) => command.join(' '));
   assert.deepEqual(install, [
     'corepack pnpm install --no-frozen-lockfile --ignore-scripts',
-    'rustup toolchain install nightly --profile minimal',
-    'rustup target add wasm32-wasip1 --toolchain nightly',
   ]);
-  assert.deepEqual(testCommands, [
-    'corepack pnpm exec father build',
-    'cargo build --target wasm32-wasip1 --release --artifact-dir compiled/crates -Z unstable-options -p swc_plugin_react_demo',
-    'corepack pnpm --dir examples/normal-utoopack build',
+  assert.equal(testCommands[0], 'corepack pnpm exec father build');
+  assert.equal(path.basename(SUITES.dumi.test[1][1]), 'prepare-dumi-example.mjs');
+  assert.equal(
+    testCommands[2],
+    'corepack pnpm --dir examples/utoopack-ecosystem-ci build',
+  );
+  assert.deepEqual(SUITES.dumi.nonEmptyDirectories, [
+    'examples/utoopack-ecosystem-ci/dist',
   ]);
-  assert.deepEqual(SUITES.dumi.test[1].env, {
-    CARGO_PROFILE_RELEASE_LTO: 'false',
-    RUSTFLAGS: '-C link-arg=--allow-undefined',
-    RUSTUP_TOOLCHAIN: 'nightly',
-  });
 });
