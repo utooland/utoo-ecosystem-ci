@@ -79,6 +79,41 @@ export const SUITES = Object.freeze({
     ],
     nonEmptyDirectories: ['examples/normal-utoopack/dist'],
   },
+  evjs: {
+    title: 'EVJS',
+    repository: 'afx-team/evjs',
+    ref: 'main',
+    packageManager: 'npm',
+    install: [
+      ['npm', 'install'],
+      ['npx', 'playwright', 'install', '--with-deps', 'chromium'],
+    ],
+    test: [
+      ['npx', 'turbo', 'build', '--filter=./packages/*'],
+      [
+        'npm',
+        'run',
+        'test:e2e',
+        '--',
+        '--project=utoopack',
+        '--project=utoopack-scaffold',
+      ],
+    ],
+    nonEmptyDirectories: [
+      'examples/basic/dist',
+      'examples/plugin-authoring/dist',
+    ],
+    directManifest: 'packages/bundler-utoopack/package.json',
+    candidateResolveFrom: 'packages/bundler-utoopack/package.json',
+    // The upstream lockfile contains an old workspace-local @utoo/pack copy.
+    // npm keeps that invalid nested install even after the direct manifest is
+    // patched, so remove only those generated copies and resolve the candidate
+    // from the root override installed above.
+    staleCandidateDirectories: [
+      'packages/bundler-utoopack/node_modules/@utoo/pack',
+      'packages/bundler-utoopack/node_modules/@utoo/pack-shared',
+    ],
+  },
 });
 
 export const SUITE_NAMES = Object.freeze(Object.keys(SUITES));

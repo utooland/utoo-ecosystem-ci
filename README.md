@@ -6,7 +6,7 @@
 
 <h1 align="center">utoopack-ecosystem-ci</h1>
 
-Ecosystem CI for validating an `@utoo/pack` candidate against real Umi ecosystem repositories. The design follows the useful part of [rstack-ecosystem-ci](https://github.com/rstackjs/rstack-ecosystem-ci): clone current consumers, inject the candidate package, run isolated suites in a matrix, and support both published releases and source commits.
+Ecosystem CI for validating an `@utoo/pack` candidate against real frontend frameworks and applications. The design follows the useful part of [rstack-ecosystem-ci](https://github.com/rstackjs/rstack-ecosystem-ci): clone current consumers, inject the candidate package, run isolated suites in a matrix, and support both published releases and source commits.
 
 The first version intentionally omits the Rstack history website, release automation, and PR-comment plumbing. Those can be added after the core compatibility signal proves stable.
 
@@ -18,8 +18,11 @@ The first version intentionally omits the Rstack history website, release automa
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
 | `dumi` | `umijs/dumi@master` | Builds Dumi and its WASM crate, then builds the utoopack documentation example |
+| `evjs` | `afx-team/evjs@main` | Builds the EVJS packages with its default `bundler-utoopack`, then runs the `utoopack` and `utoopack-scaffold` Playwright projects |
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
+
+For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
 
 ## Run locally
 
@@ -37,6 +40,7 @@ ut ecosystem -- --list
 # Test a published version or dist-tag
 ut ecosystem -- --suite father --pack latest
 ut ecosystem -- --suite ant-design-pro --pack 1.5.3
+ut ecosystem -- --suite evjs --pack latest
 
 # Inspect the exact plan without cloning or installing
 ut ecosystem -- --suite dumi --pack latest --dry-run
@@ -66,7 +70,7 @@ The **Utoopack ecosystem CI** workflow supports four entry points:
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
-In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the four consumer jobs.
+In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the five consumer jobs.
 
 ### Call from the utoo repository
 

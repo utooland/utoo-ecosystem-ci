@@ -90,8 +90,20 @@ function assertNonEmptyDirectories(repoDir, directories) {
   }
 }
 
-function getInstalledPack(repoDir) {
-  const requireFromConsumer = createRequire(path.join(repoDir, 'package.json'));
+function removeStaleCandidateDirectories(repoDir, directories = []) {
+  const root = path.resolve(repoDir);
+  for (const relative of directories) {
+    const directory = path.resolve(root, relative);
+    if (!directory.startsWith(`${root}${path.sep}`)) {
+      throw new Error(`Candidate cleanup path escapes the consumer: ${relative}`);
+    }
+    fs.rmSync(directory, { recursive: true, force: true });
+    console.log(`Removed stale candidate install: ${relative}`);
+  }
+}
+
+function getInstalledPack(repoDir, resolveFrom = 'package.json') {
+  const requireFromConsumer = createRequire(path.join(repoDir, resolveFrom));
   const manifest = requireFromConsumer.resolve('@utoo/pack/package.json');
   const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'));
   return { manifest, version: pkg.version };
@@ -214,7 +226,14 @@ export async function run(options) {
     });
   }
 
-  const pack = getInstalledPack(repoDir);
+  removeStaleCandidateDirectories(
+    repoDir,
+    suite.staleCandidateDirectories,
+  );
+  const pack = getInstalledPack(
+    repoDir,
+    suite.candidateResolveFrom ?? 'package.json',
+  );
   console.log(`Using @utoo/pack@${pack.version} from ${pack.manifest}`);
   if (!packSpec.startsWith('file:') && pack.version !== packSpec) {
     throw new Error(

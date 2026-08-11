@@ -2,7 +2,7 @@
   "name": "utoopack-ecosystem-ci",
   "version": "0.1.0",
   "private": true,
-  "description": "Ecosystem CI for validating Utoopack against Umi, Ant Design Pro, Father, and Dumi",
+  "description": "Ecosystem CI for validating Utoopack against Umi, Ant Design Pro, Father, Dumi, and EVJS",
   "license": "MIT",
   "type": "module",
   "scripts": {

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 
 const workflow = fs.readFileSync('.github/workflows/ecosystem-ci.yml', 'utf8');
 
-for (const suite of ['umi', 'ant-design-pro', 'father', 'dumi']) {
+for (const suite of ['umi', 'ant-design-pro', 'father', 'dumi', 'evjs']) {
   assert.match(workflow, new RegExp(`- ${suite.replace('-', '\\-')}(?:\\n|$)`));
 }
 
