@@ -3,6 +3,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { runCommand } from '../src/process.mjs';
 
 function parseArgs(argv) {
@@ -30,7 +31,16 @@ function checksum(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
+export function resolvePackageDirectory(source, packagePath) {
+  const packageDirectory = path.resolve(source, packagePath);
+  if (!fs.existsSync(path.join(packageDirectory, 'package.json'))) {
+    throw new Error(`Not a package directory: ${packageDirectory}`);
+  }
+  return packageDirectory;
+}
+
 async function pack(source, temporary, packagePath, targetName) {
+  const packageDirectory = resolvePackageDirectory(source, packagePath);
   const stdout = await capture(
     [
       'npm',
@@ -39,7 +49,7 @@ async function pack(source, temporary, packagePath, targetName) {
       '--json',
       '--pack-destination',
       temporary,
-      packagePath,
+      packageDirectory,
     ],
     source,
   );
@@ -97,4 +107,9 @@ async function main() {
   }
 }
 
-await main();
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  await main();
+}
