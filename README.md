@@ -72,7 +72,7 @@ In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the 
 
 ### Call from the utoo repository
 
-After this repository is created as `utoo/utoopack-ecosystem-ci`, add a small workflow to the utoo repository:
+Add a small workflow to the utoo repository:
 
 ```yaml
 name: Ecosystem CI
@@ -87,13 +87,13 @@ permissions:
 
 jobs:
   ecosystem:
-    uses: utoo/utoopack-ecosystem-ci/.github/workflows/ecosystem-ci.yml@main
+    uses: utooland/utoo-ecosystem-ci/.github/workflows/ecosystem-ci.yml@main
     with:
       candidate_mode: source
       utoo_repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       utoo_ref: ${{ github.event.pull_request.head.sha || github.sha }}
       suite: all
-      harness_repository: utoo/utoopack-ecosystem-ci
+      harness_repository: utooland/utoo-ecosystem-ci
       harness_ref: main
 ```
 
@@ -102,7 +102,7 @@ No secrets are required for public repositories. GitHub-hosted runners need enou
 ## Dispatch payload example
 
 ```bash
-gh api --method POST repos/utoo/utoopack-ecosystem-ci/dispatches \
+gh api --method POST repos/utooland/utoo-ecosystem-ci/dispatches \
   -f event_type=utoopack-ecosystem-ci \
   -f 'client_payload[candidate_mode]=npm' \
   -f 'client_payload[pack_spec]=latest' \
