@@ -21,4 +21,9 @@ assert.match(workflow, /workflow_dispatch:/);
 assert.match(workflow, /workflow_call:/);
 assert.match(workflow, /schedule:/);
 assert.match(workflow, /repository_dispatch:/);
+assert.doesNotMatch(
+  workflow,
+  /candidate\/utoo\/package-lock\.json/,
+  'The utoo source checkout does not contain a root package-lock.json',
+);
 console.log('Workflow policy checks passed');
