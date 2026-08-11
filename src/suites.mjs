@@ -102,6 +102,9 @@ export const SUITES = Object.freeze({
           'swc_plugin_react_demo',
         ],
         env: {
+          // LTO is useful for published artifacts, but makes this tiny fixture
+          // take close to an hour on a cold GitHub runner.
+          CARGO_PROFILE_RELEASE_LTO: 'false',
           RUSTFLAGS: '-C link-arg=--allow-undefined',
           RUSTUP_TOOLCHAIN: 'nightly',
         },

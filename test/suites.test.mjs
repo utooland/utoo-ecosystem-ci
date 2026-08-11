@@ -82,6 +82,7 @@ test('Dumi builds its required WASM plugin and utoopack example', () => {
     'corepack pnpm --dir examples/normal-utoopack build',
   ]);
   assert.deepEqual(SUITES.dumi.test[1].env, {
+    CARGO_PROFILE_RELEASE_LTO: 'false',
     RUSTFLAGS: '-C link-arg=--allow-undefined',
     RUSTUP_TOOLCHAIN: 'nightly',
   });
