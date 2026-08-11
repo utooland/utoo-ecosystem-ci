@@ -76,10 +76,36 @@ export const SUITES = Object.freeze({
     repository: 'umijs/dumi',
     ref: 'master',
     packageManager: 'pnpm',
-    install: [pnpm('install', '--no-frozen-lockfile', '--ignore-scripts')],
+    install: [
+      pnpm('install', '--no-frozen-lockfile', '--ignore-scripts'),
+      ['rustup', 'toolchain', 'install', 'nightly', '--profile', 'minimal'],
+      ['rustup', 'target', 'add', 'wasm32-wasip1', '--toolchain', 'nightly'],
+    ],
     test: [
-      // Build dumi's JavaScript output without its unrelated SWC demo crate.
+      // Build dumi's JavaScript output separately so its required SWC plugin
+      // can use linker flags compatible with current Rust toolchains.
       pnpm('exec', 'father', 'build'),
+      // The example imports this SWC plugin at build time. New Rust toolchains
+      // require explicitly allowing the host imports provided by @swc/core.
+      {
+        command: [
+          'cargo',
+          'build',
+          '--target',
+          'wasm32-wasip1',
+          '--release',
+          '--artifact-dir',
+          'compiled/crates',
+          '-Z',
+          'unstable-options',
+          '-p',
+          'swc_plugin_react_demo',
+        ],
+        env: {
+          RUSTFLAGS: '-C link-arg=--allow-undefined',
+          RUSTUP_TOOLCHAIN: 'nightly',
+        },
+      },
       pnpm('--dir', 'examples/normal-utoopack', 'build'),
     ],
     nonEmptyDirectories: ['examples/normal-utoopack/dist'],

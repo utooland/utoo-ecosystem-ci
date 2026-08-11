@@ -66,14 +66,23 @@ test('Father validates only its utoopack UMD example', () => {
   ]);
 });
 
-test('Dumi skips its unrelated Rust crates and builds the utoopack example', () => {
+test('Dumi builds its required WASM plugin and utoopack example', () => {
   const install = SUITES.dumi.install.map((command) => command.join(' '));
-  const testCommands = SUITES.dumi.test.map((command) => command.join(' '));
+  const testCommands = SUITES.dumi.test.map((item) =>
+    (Array.isArray(item) ? item : item.command).join(' '),
+  );
   assert.deepEqual(install, [
     'corepack pnpm install --no-frozen-lockfile --ignore-scripts',
+    'rustup toolchain install nightly --profile minimal',
+    'rustup target add wasm32-wasip1 --toolchain nightly',
   ]);
   assert.deepEqual(testCommands, [
     'corepack pnpm exec father build',
+    'cargo build --target wasm32-wasip1 --release --artifact-dir compiled/crates -Z unstable-options -p swc_plugin_react_demo',
     'corepack pnpm --dir examples/normal-utoopack build',
   ]);
+  assert.deepEqual(SUITES.dumi.test[1].env, {
+    RUSTFLAGS: '-C link-arg=--allow-undefined',
+    RUSTUP_TOOLCHAIN: 'nightly',
+  });
 });
