@@ -24,7 +24,7 @@ For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack
 
 ## Run locally
 
-Requirements: Node.js 22, Git, and [Utoo](https://github.com/utooland/utoo) 1.1.7.
+Requirements: Node.js 22, Git, and [Utoo](https://github.com/utooland/utoo) 1.1.8 or newer. The project self-pins to Utoo 1.1.8.
 
 ```bash
 ut install
