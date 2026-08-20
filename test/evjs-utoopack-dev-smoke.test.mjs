@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import test from 'node:test';
 import { waitForServer } from '../scripts/evjs-utoopack-dev-smoke.mjs';
-
-const sleep = (milliseconds) =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 test('EVJS dev smoke requires both servers and a successful page response', async () => {
   const server = { exitCode: null, signalCode: null };
@@ -40,34 +36,26 @@ test('EVJS dev smoke requires both servers and a successful page response', asyn
 });
 
 test('EVJS dev smoke rejects a signal exit before readiness', async () => {
-  const server = spawn(
-    process.execPath,
-    ['-e', 'setTimeout(() => process.kill(process.pid, "SIGABRT"), 10)'],
-    { stdio: 'ignore' },
-  );
+  const server = { exitCode: null, signalCode: null };
+  setTimeout(() => {
+    server.signalCode = 'SIGABRT';
+  }, 10);
 
-  try {
-    await assert.rejects(
-      waitForServer(
-        {
-          server,
-          getLog: () => 'fatal runtime error: aborting',
-          getSpawnError: () => null,
+  await assert.rejects(
+    waitForServer(
+      {
+        server,
+        getLog: () => 'fatal runtime error: aborting',
+        getSpawnError: () => null,
+      },
+      {
+        timeout: 1_000,
+        pollInterval: 5,
+        fetchImpl: async () => {
+          throw new Error('not ready');
         },
-        {
-          timeout: 1_000,
-          pollInterval: 5,
-          fetchImpl: async () => {
-            throw new Error('not ready');
-          },
-        },
-      ),
-      /signal SIGABRT[\s\S]*fatal runtime error: aborting/,
-    );
-  } finally {
-    if (server.exitCode === null && server.signalCode === null) {
-      server.kill('SIGKILL');
-      await sleep(10);
-    }
-  }
+      },
+    ),
+    /signal SIGABRT[\s\S]*fatal runtime error: aborting/,
+  );
 });
