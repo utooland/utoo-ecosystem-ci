@@ -16,7 +16,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
 | `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds a minimal site based on Dumi's official template with utoopack |
-| `evjs` | `afx-team/evjs@main` | Builds EVJS packages and runs its `bundler-utoopack` Playwright project |
+| `evjs` | `afx-team/evjs@main` | Builds EVJS packages, starts its basic app with `ev dev`, and runs its `bundler-utoopack` Playwright project |
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 

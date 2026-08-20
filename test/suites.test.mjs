@@ -38,12 +38,14 @@ test('all suites use explicit repositories, refs, commands, and output checks', 
   }
 });
 
-test('EVJS runs only its utoopack Playwright projects', () => {
+test('EVJS runs its utoopack dev smoke and Playwright project', () => {
   const commands = SUITES.evjs.test.map((command) => command.join(' '));
-  assert.deepEqual(commands, [
-    'npx turbo build --filter=./packages/*',
-    'npm run test:e2e -- --project=utoopack',
-  ]);
+  assert.equal(commands[0], 'npx turbo build --filter=./packages/*');
+  assert.equal(
+    path.basename(SUITES.evjs.test[1][1]),
+    'evjs-utoopack-dev-smoke.mjs',
+  );
+  assert.equal(commands[2], 'npm run test:e2e -- --project=utoopack');
   assert.equal(
     SUITES.evjs.directManifest,
     'packages/bundler-utoopack/package.json',

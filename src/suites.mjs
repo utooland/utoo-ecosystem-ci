@@ -7,6 +7,9 @@ const umiUtoopackE2E = fileURLToPath(
 const prepareDumiExample = fileURLToPath(
   new URL('../scripts/prepare-dumi-example.mjs', import.meta.url),
 );
+const evjsUtoopackDevSmoke = fileURLToPath(
+  new URL('../scripts/evjs-utoopack-dev-smoke.mjs', import.meta.url),
+);
 
 export const SUITES = Object.freeze({
   umi: {
@@ -102,6 +105,7 @@ export const SUITES = Object.freeze({
     ],
     test: [
       ['npx', 'turbo', 'build', '--filter=./packages/*'],
+      ['node', evjsUtoopackDevSmoke],
       [
         'npm',
         'run',
