@@ -3,6 +3,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { SUITE_NAMES, SUITES } from '../src/suites.mjs';
 
+const commandOf = (step) => (Array.isArray(step) ? step : step.command);
+
 test('Umi runs its native utoopack and qiankun E2E coverage', () => {
   const commands = SUITES.umi.test.map((command) => command.join(' '));
   assert.equal(
@@ -26,6 +28,24 @@ test('defines the requested ecosystem suites', () => {
     'dumi',
     'evjs',
   ]);
+});
+
+test('Ant Design Pro covers both production build and utoopack dev', () => {
+  assert.equal(SUITES['ant-design-pro'].test[0].join(' '), 'npm run build');
+  const dev = SUITES['ant-design-pro'].test[1];
+  assert.equal(path.basename(dev.command[1]), 'utoopack-dev-server-smoke.mjs');
+  assert.deepEqual(dev.command.slice(2), [
+    '--url',
+    'http://127.0.0.1:9528/',
+    '--',
+    'npm',
+    'run',
+    'dev',
+  ]);
+  assert.deepEqual(dev.env, {
+    NODE_ENV: 'development',
+    PORT: '9528',
+  });
 });
 
 test('all suites use explicit repositories, refs, commands, and output checks', () => {
@@ -70,7 +90,9 @@ test('Father validates only its utoopack UMD example', () => {
 
 test('Dumi builds its local source with a minimal utoopack site example', () => {
   const install = SUITES.dumi.install.map((command) => command.join(' '));
-  const testCommands = SUITES.dumi.test.map((command) => command.join(' '));
+  const testCommands = SUITES.dumi.test.map((step) =>
+    commandOf(step).join(' '),
+  );
   assert.deepEqual(install, [
     'corepack pnpm install --no-frozen-lockfile --ignore-scripts',
   ]);
@@ -80,6 +102,22 @@ test('Dumi builds its local source with a minimal utoopack site example', () => 
     testCommands[2],
     'corepack pnpm --dir examples/utoopack-ecosystem-ci build',
   );
+  const dev = SUITES.dumi.test[3];
+  assert.equal(path.basename(dev.command[1]), 'utoopack-dev-server-smoke.mjs');
+  assert.deepEqual(dev.command.slice(2), [
+    '--cwd',
+    'examples/utoopack-ecosystem-ci',
+    '--url',
+    'http://127.0.0.1:9529/',
+    '--',
+    'corepack',
+    'pnpm',
+    'dev',
+  ]);
+  assert.deepEqual(dev.env, {
+    NODE_ENV: 'development',
+    PORT: '9529',
+  });
   assert.deepEqual(SUITES.dumi.nonEmptyDirectories, [
     'examples/utoopack-ecosystem-ci/dist',
   ]);

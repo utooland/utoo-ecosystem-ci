@@ -10,6 +10,9 @@ const prepareDumiExample = fileURLToPath(
 const evjsUtoopackDevSmoke = fileURLToPath(
   new URL('../scripts/evjs-utoopack-dev-smoke.mjs', import.meta.url),
 );
+const utoopackDevServerSmoke = fileURLToPath(
+  new URL('../scripts/utoopack-dev-server-smoke.mjs', import.meta.url),
+);
 
 export const SUITES = Object.freeze({
   umi: {
@@ -56,7 +59,25 @@ export const SUITES = Object.freeze({
     // candidate override. Reading the existing lockfile avoids a full cold
     // resolution of Ant Design Pro's large dependency graph.
     install: [['npm', 'install']],
-    test: [['npm', 'run', 'build']],
+    test: [
+      ['npm', 'run', 'build'],
+      {
+        command: [
+          'node',
+          utoopackDevServerSmoke,
+          '--url',
+          'http://127.0.0.1:9528/',
+          '--',
+          'npm',
+          'run',
+          'dev',
+        ],
+        env: {
+          NODE_ENV: 'development',
+          PORT: '9528',
+        },
+      },
+    ],
     nonEmptyDirectories: ['dist'],
     env: {
       NODE_ENV: 'test',
@@ -91,6 +112,24 @@ export const SUITES = Object.freeze({
       pnpm('exec', 'father', 'build'),
       ['node', prepareDumiExample],
       pnpm('--dir', 'examples/utoopack-ecosystem-ci', 'build'),
+      {
+        command: [
+          'node',
+          utoopackDevServerSmoke,
+          '--cwd',
+          'examples/utoopack-ecosystem-ci',
+          '--url',
+          'http://127.0.0.1:9529/',
+          '--',
+          'corepack',
+          'pnpm',
+          'dev',
+        ],
+        env: {
+          NODE_ENV: 'development',
+          PORT: '9529',
+        },
+      },
     ],
     nonEmptyDirectories: ['examples/utoopack-ecosystem-ci/dist'],
   },

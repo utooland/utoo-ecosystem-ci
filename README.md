@@ -13,9 +13,9 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 | Suite | Consumer | E2E coverage |
 | --- | --- | --- |
 | `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E plus its qiankun slave and utoopack master E2Es |
-| `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build |
+| `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build and starts its utoopack dev server |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
-| `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds a minimal site based on Dumi's official template with utoopack |
+| `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds and starts a minimal site based on Dumi's official template with utoopack |
 | `evjs` | `afx-team/evjs@main` | Builds EVJS packages, starts its basic app with `ev dev`, and runs its `bundler-utoopack` Playwright project |
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
@@ -64,7 +64,7 @@ Consumer checkouts are disposable and live under `workspace/`. Use `--keep` to r
 The **Utoopack ecosystem CI** workflow supports four entry points:
 
 - Daily schedule: all suites against the npm `latest` tag.
-- Manual run: choose npm/source mode and one suite or all suites.
+- Manual run: choose npm/source mode, one suite or all suites, and optionally a harness branch to validate.
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
