@@ -64,7 +64,7 @@ Consumer checkouts are disposable and live under `workspace/`. Use `--keep` to r
 The **Utoopack ecosystem CI** workflow supports four entry points:
 
 - Daily schedule: all suites against the npm `latest` tag.
-- Manual run: choose npm/source mode and one suite or all suites.
+- Manual run: choose npm/source mode, one suite or all suites, and optionally a harness branch to validate.
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 

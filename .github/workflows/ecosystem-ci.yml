@@ -85,6 +85,11 @@ on:
         required: false
         type: string
         default: ''
+      harness_ref:
+        description: Ecosystem harness ref to check out
+        required: false
+        type: string
+        default: main
   repository_dispatch:
     types: [utoopack-ecosystem-ci]
   schedule:
