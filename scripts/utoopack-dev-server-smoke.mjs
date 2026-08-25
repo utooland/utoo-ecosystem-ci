@@ -42,6 +42,26 @@ function exitReason(server) {
   return `exit code ${server.exitCode}`;
 }
 
+async function fetchWithTimeout(fetchImpl, url, timeout) {
+  const controller = new AbortController();
+  const timeoutPromise = Promise.withResolvers();
+  const timer = setTimeout(() => {
+    controller.abort();
+    timeoutPromise.reject(
+      new Error(`Readiness request timed out after ${timeout} ms`),
+    );
+  }, timeout);
+
+  try {
+    return await Promise.race([
+      fetchImpl(url, { signal: controller.signal }),
+      timeoutPromise.promise,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function startServer(repoDir, { cwd, command }) {
   const [executable, ...args] = command;
   const server = spawn(executable, args, {
@@ -78,6 +98,7 @@ export async function waitForServer(
   {
     url,
     timeout = 180_000,
+    requestTimeout = 5_000,
     pollInterval = 500,
     fetchImpl = globalThis.fetch,
   } = {},
@@ -96,7 +117,12 @@ export async function waitForServer(
 
     if (READY_PATTERN.test(getLog().replace(ANSI_PATTERN, ''))) {
       try {
-        const response = await fetchImpl(url);
+        const remaining = timeout - (Date.now() - started);
+        const response = await fetchWithTimeout(
+          fetchImpl,
+          url,
+          Math.max(1, Math.min(requestTimeout, remaining)),
+        );
         if (response.ok) {
           await response.body?.cancel();
           return;

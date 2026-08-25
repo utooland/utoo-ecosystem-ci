@@ -63,6 +63,28 @@ test('requires both the utoopack banner and a successful response', async () => 
   assert.equal(requests, 2);
 });
 
+test('bounds readiness requests that never return headers', async () => {
+  const server = { exitCode: null, signalCode: null };
+
+  await assert.rejects(
+    waitForServer(
+      {
+        server,
+        getLog: () => 'utoo pack v1.6.0 ready in 42 ms',
+        getSpawnError: () => null,
+      },
+      {
+        url: 'http://127.0.0.1:9528/',
+        timeout: 50,
+        requestTimeout: 10,
+        pollInterval: 1,
+        fetchImpl: async () => new Promise(() => {}),
+      },
+    ),
+    /Timed out waiting for the utoopack dev server/,
+  );
+});
+
 test('rejects a signal exit before readiness', async () => {
   const server = { exitCode: null, signalCode: null };
   setTimeout(() => {
