@@ -12,6 +12,8 @@ test('parses the dev server directory, URL, and command', () => {
       'examples/site',
       '--url',
       'http://127.0.0.1:9528/',
+      '--timeout',
+      '600000',
       '--',
       'npm',
       'run',
@@ -20,6 +22,7 @@ test('parses the dev server directory, URL, and command', () => {
     {
       cwd: 'examples/site',
       url: 'http://127.0.0.1:9528/',
+      timeout: 600000,
       command: ['npm', 'run', 'dev'],
     },
   );
@@ -31,6 +34,20 @@ test('rejects missing URL, command, and unknown arguments', () => {
   assert.throws(
     () => parseArgs(['--port', '9528', '--', 'npm', 'run', 'dev']),
     /Unknown argument: --port/,
+  );
+  assert.throws(
+    () =>
+      parseArgs([
+        '--url',
+        'http://localhost',
+        '--timeout',
+        'soon',
+        '--',
+        'npm',
+        'run',
+        'dev',
+      ]),
+    /--timeout must be a positive integer/,
   );
 });
 

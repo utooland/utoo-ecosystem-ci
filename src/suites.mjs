@@ -104,6 +104,8 @@ export const SUITES = Object.freeze({
           utoopackDevServerSmoke,
           '--url',
           'http://127.0.0.1:8001/',
+          '--timeout',
+          '600000',
           '--',
           'npm',
           'start',
