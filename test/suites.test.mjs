@@ -43,6 +43,8 @@ test('Ant Design covers the issue 3332 production and dev reproduction', () => {
   assert.deepEqual(dev.command.slice(2), [
     '--url',
     'http://127.0.0.1:8001/',
+    '--timeout',
+    '600000',
     '--',
     'npm',
     'start',

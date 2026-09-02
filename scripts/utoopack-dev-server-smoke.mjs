@@ -21,7 +21,7 @@ export function parseArgs(argv) {
   const flags = argv.slice(0, separator);
   for (let index = 0; index < flags.length; index += 1) {
     const flag = flags[index];
-    if (flag !== '--cwd' && flag !== '--url') {
+    if (flag !== '--cwd' && flag !== '--url' && flag !== '--timeout') {
       throw new Error(`Unknown argument: ${flag}`);
     }
 
@@ -29,7 +29,15 @@ export function parseArgs(argv) {
     if (!value || value.startsWith('--')) {
       throw new Error(`${flag} requires a value`);
     }
-    options[flag === '--cwd' ? 'cwd' : 'url'] = value;
+    if (flag === '--timeout') {
+      const timeout = Number(value);
+      if (!Number.isSafeInteger(timeout) || timeout <= 0) {
+        throw new Error('--timeout must be a positive integer in milliseconds');
+      }
+      options.timeout = timeout;
+    } else {
+      options[flag === '--cwd' ? 'cwd' : 'url'] = value;
+    }
     index += 1;
   }
 
@@ -193,7 +201,10 @@ export async function main(
   const runningServer = startServer(repoDir, options);
 
   try {
-    await waitForServer(runningServer, { url: options.url });
+    await waitForServer(runningServer, {
+      url: options.url,
+      timeout: options.timeout,
+    });
   } finally {
     await stopServer(runningServer.server);
   }
