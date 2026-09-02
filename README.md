@@ -113,6 +113,6 @@ gh api --method POST repos/utooland/utoo-ecosystem-ci/dispatches \
 
 ## Maintenance
 
-This repository itself uses Utoo (`ut install`, `ut test`, and `ut lint`) and keeps an npm-compatible `package-lock.json`, which Utoo reads and updates. JavaScript is linted with `@utoo/lint`; its files, ignores, and rules live in `utlint.config.ts`. `ut check:workflow` separately enforces the GitHub Actions SHA policy. Consumer checkouts continue using the package manager declared by each upstream repository so package-manager behavior is not mixed into bundler compatibility results.
+This repository itself uses Utoo (`ut install`, `ut test`, and `ut lint`) and keeps an npm-compatible `package-lock.json`, which Utoo reads and updates. JavaScript is linted with `@utoo/lint`; its files, ignores, and rules live in `utlint.config.ts`. `ut check:workflow` separately enforces the GitHub Actions SHA policy. Consumer checkouts generally use the package manager declared by each upstream repository; the large Ant Design and Ant Design Pro dependency graphs use Utoo for faster installation while retaining their upstream npm scripts and npm-compatible dependency overrides.
 
 Suite commands live in `src/suites.mjs`. Keep them aligned with the consumer repositories' own CI and examples. External GitHub Actions are pinned to full commit SHAs; `ut check:workflow` enforces that policy.
