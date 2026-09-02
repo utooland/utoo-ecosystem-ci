@@ -6,7 +6,7 @@
 
 <h1 align="center">utoopack-ecosystem-ci</h1>
 
-Continuously validates published releases and source-built `@utoo/pack` candidates against Umi, Ant Design Pro, Father, Dumi, and EVJS. Each suite injects the candidate into a fresh consumer checkout, runs its real utoopack build or E2E workflow in isolation, and verifies the expected output.
+Continuously validates published releases and source-built `@utoo/pack` candidates against Umi, Ant Design Pro, Ant Design, Father, Dumi, and EVJS. Each suite injects the candidate into a fresh consumer checkout, runs its real utoopack build or E2E workflow in isolation, and verifies the expected output.
 
 ## Suites
 
@@ -14,6 +14,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 | --- | --- | --- |
 | `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E plus its qiankun slave and utoopack master E2Es |
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build and starts its utoopack dev server |
+| `ant-design` | `ant-design/ant-design@7793cab` | Runs the production Dumi site build and the exact utoopack dev startup from `utooland/utoo#3332` |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
 | `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds and starts a minimal site based on Dumi's official template with utoopack |
 | `evjs` | `afx-team/evjs@main` | Builds EVJS packages, starts its basic app with `ev dev`, and runs its `bundler-utoopack` Playwright project |
@@ -38,6 +39,7 @@ ut ecosystem -- --list
 # Test a published version or dist-tag
 ut ecosystem -- --suite father --pack latest
 ut ecosystem -- --suite ant-design-pro --pack 1.5.3
+ut ecosystem -- --suite ant-design --pack latest
 ut ecosystem -- --suite evjs --pack latest
 
 # Inspect the exact plan without cloning or installing
@@ -68,7 +70,7 @@ The **Utoopack ecosystem CI** workflow supports four entry points:
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
-In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the five consumer jobs.
+In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the six consumer jobs.
 
 ### Call from the utoo repository
 

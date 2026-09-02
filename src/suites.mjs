@@ -84,6 +84,34 @@ export const SUITES = Object.freeze({
       PROGRESS: 'none',
     },
   },
+  'ant-design': {
+    title: 'Ant Design',
+    repository: 'ant-design/ant-design',
+    // Keep this pinned to the public reproduction from utooland/utoo#3332.
+    ref: '7793cab03924d29db45d64dadc1c81d0a8cf59e0',
+    packageManager: 'npm',
+    // The reproduction intentionally starts from a fresh dependency graph;
+    // this commit does not contain an npm or pnpm lockfile.
+    install: [['npm', 'install']],
+    test: [
+      // Ant Design's documentation site enables utoopack in .dumirc.ts for
+      // both production and development. npm run site is its production Dumi
+      // build, while npm start is the exact dev command from issue #3332.
+      ['npm', 'run', 'site'],
+      {
+        command: [
+          'node',
+          utoopackDevServerSmoke,
+          '--url',
+          'http://127.0.0.1:8001/',
+          '--',
+          'npm',
+          'start',
+        ],
+      },
+    ],
+    nonEmptyDirectories: ['_site'],
+  },
   father: {
     title: 'Father',
     repository: 'umijs/father',
