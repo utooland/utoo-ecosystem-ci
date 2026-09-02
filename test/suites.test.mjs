@@ -35,7 +35,7 @@ test('Ant Design covers the issue 3332 production and dev reproduction', () => {
   const suite = SUITES['ant-design'];
   assert.equal(suite.repository, 'ant-design/ant-design');
   assert.equal(suite.ref, '7793cab03924d29db45d64dadc1c81d0a8cf59e0');
-  assert.deepEqual(suite.install, [['npm', 'install']]);
+  assert.deepEqual(suite.install, [['ut', 'install']]);
   assert.equal(suite.test[0].join(' '), 'npm run site');
 
   const dev = suite.test[1];
@@ -51,6 +51,7 @@ test('Ant Design covers the issue 3332 production and dev reproduction', () => {
 });
 
 test('Ant Design Pro covers both production build and utoopack dev', () => {
+  assert.deepEqual(SUITES['ant-design-pro'].install, [['ut', 'install']]);
   assert.equal(SUITES['ant-design-pro'].test[0].join(' '), 'npm run build');
   const dev = SUITES['ant-design-pro'].test[1];
   assert.equal(path.basename(dev.command[1]), 'utoopack-dev-server-smoke.mjs');

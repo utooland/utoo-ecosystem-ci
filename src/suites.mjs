@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 
 const pnpm = (...args) => ['corepack', 'pnpm', ...args];
+const ut = (...args) => ['ut', ...args];
 const umiUtoopackE2E = fileURLToPath(
   new URL('../scripts/umi-utoopack-e2e.mjs', import.meta.url),
 );
@@ -55,10 +56,9 @@ export const SUITES = Object.freeze({
     repository: 'ant-design/ant-design-pro',
     ref: 'master',
     packageManager: 'npm',
-    // The checkout is disposable, so npm may update its lockfile for the
-    // candidate override. Reading the existing lockfile avoids a full cold
-    // resolution of Ant Design Pro's large dependency graph.
-    install: [['npm', 'install']],
+    // Utoo reads the existing npm lockfile while installing the patched
+    // candidate, avoiding a full cold npm resolution of this large graph.
+    install: [ut('install')],
     test: [
       ['npm', 'run', 'build'],
       {
@@ -92,7 +92,7 @@ export const SUITES = Object.freeze({
     packageManager: 'npm',
     // The reproduction intentionally starts from a fresh dependency graph;
     // this commit does not contain an npm or pnpm lockfile.
-    install: [['npm', 'install']],
+    install: [ut('install')],
     test: [
       // Ant Design's documentation site enables utoopack in .dumirc.ts for
       // both production and development. npm run site is its production Dumi

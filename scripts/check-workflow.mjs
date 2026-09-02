@@ -6,11 +6,17 @@ const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
 const pinnedUtooVersion = manifest.packageManager?.match(/^utoo@(.+)$/)?.[1];
 assert.ok(pinnedUtooVersion, 'packageManager must pin an exact Utoo version');
-assert.deepEqual(
-  [...workflow.matchAll(/utoo-version:\s*([^\s#]+)/g)].map((match) => match[1]),
-  [pinnedUtooVersion, pinnedUtooVersion],
-  'setup-utoo versions must match the project packageManager pin',
-);
+const setupUtooVersions = [
+  ...workflow.matchAll(/utoo-version:\s*([^\s#]+)/g),
+].map((match) => match[1]);
+assert.ok(setupUtooVersions.length > 0, 'workflow must set up Utoo');
+for (const version of setupUtooVersions) {
+  assert.equal(
+    version,
+    pinnedUtooVersion,
+    'setup-utoo versions must match the project packageManager pin',
+  );
+}
 
 for (const suite of [
   'umi',
