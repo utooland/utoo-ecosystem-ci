@@ -24,10 +24,30 @@ test('defines the requested ecosystem suites', () => {
   assert.deepEqual(SUITE_NAMES, [
     'umi',
     'ant-design-pro',
+    'ant-design',
     'father',
     'dumi',
     'evjs',
   ]);
+});
+
+test('Ant Design covers the issue 3332 production and dev reproduction', () => {
+  const suite = SUITES['ant-design'];
+  assert.equal(suite.repository, 'ant-design/ant-design');
+  assert.equal(suite.ref, '7793cab03924d29db45d64dadc1c81d0a8cf59e0');
+  assert.deepEqual(suite.install, [['npm', 'install']]);
+  assert.equal(suite.test[0].join(' '), 'npm run site');
+
+  const dev = suite.test[1];
+  assert.equal(path.basename(dev.command[1]), 'utoopack-dev-server-smoke.mjs');
+  assert.deepEqual(dev.command.slice(2), [
+    '--url',
+    'http://127.0.0.1:8001/',
+    '--',
+    'npm',
+    'start',
+  ]);
+  assert.deepEqual(suite.nonEmptyDirectories, ['_site']);
 });
 
 test('Ant Design Pro covers both production build and utoopack dev', () => {

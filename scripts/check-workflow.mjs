@@ -12,7 +12,14 @@ assert.deepEqual(
   'setup-utoo versions must match the project packageManager pin',
 );
 
-for (const suite of ['umi', 'ant-design-pro', 'father', 'dumi', 'evjs']) {
+for (const suite of [
+  'umi',
+  'ant-design-pro',
+  'ant-design',
+  'father',
+  'dumi',
+  'evjs',
+]) {
   assert.match(workflow, new RegExp(`- ${suite.replace('-', '\\-')}(?:\\n|$)`));
 }
 
