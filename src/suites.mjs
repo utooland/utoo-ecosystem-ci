@@ -11,9 +11,42 @@ const prepareDumiExample = fileURLToPath(
 const evjsUtoopackDevSmoke = fileURLToPath(
   new URL('../scripts/evjs-utoopack-dev-smoke.mjs', import.meta.url),
 );
+const evjsSharedRuntime = fileURLToPath(
+  new URL('../scripts/evjs-shared-runtime.mjs', import.meta.url),
+);
 const utoopackDevServerSmoke = fileURLToPath(
   new URL('../scripts/utoopack-dev-server-smoke.mjs', import.meta.url),
 );
+
+const evjsSuite = {
+  title: 'EVJS',
+  repository: 'afx-team/evjs',
+  ref: 'main',
+  packageManager: 'npm',
+  install: [
+    ['npm', 'install'],
+    ['npx', 'playwright', 'install', '--with-deps', 'chromium'],
+  ],
+  test: [
+    ['npx', 'turbo', 'build', '--filter=./packages/*'],
+    ['node', evjsUtoopackDevSmoke],
+    ['npm', 'run', 'test:e2e', '--', '--project=utoopack'],
+  ],
+  nonEmptyDirectories: [
+    'examples/basic/dist',
+    'examples/plugin-authoring/dist',
+  ],
+  directManifest: 'packages/bundler-utoopack/package.json',
+  candidateResolveFrom: 'packages/bundler-utoopack/package.json',
+  // The upstream lockfile contains an old workspace-local @utoo/pack copy.
+  // npm keeps that invalid nested install even after the direct manifest is
+  // patched, so remove only those generated copies and resolve the candidate
+  // from the root override installed above.
+  staleCandidateDirectories: [
+    'packages/bundler-utoopack/node_modules/@utoo/pack',
+    'packages/bundler-utoopack/node_modules/@utoo/pack-shared',
+  ],
+};
 
 export const SUITES = Object.freeze({
   umi: {
@@ -163,40 +196,17 @@ export const SUITES = Object.freeze({
     ],
     nonEmptyDirectories: ['examples/utoopack-ecosystem-ci/dist'],
   },
-  evjs: {
-    title: 'EVJS',
-    repository: 'afx-team/evjs',
-    ref: 'main',
-    packageManager: 'npm',
-    install: [
-      ['npm', 'install'],
-      ['npx', 'playwright', 'install', '--with-deps', 'chromium'],
-    ],
+  evjs: evjsSuite,
+  'evjs-shared-runtime': {
+    ...evjsSuite,
+    title: 'EVJS shared runtime',
     test: [
-      ['npx', 'turbo', 'build', '--filter=./packages/*'],
-      ['node', evjsUtoopackDevSmoke],
-      [
-        'npm',
-        'run',
-        'test:e2e',
-        '--',
-        '--project=utoopack',
-      ],
+      evjsSuite.test[0],
+      ['node', evjsSharedRuntime, 'prepare'],
+      ['npm', 'run', 'test:e2e', '--', '--project=utoopack', 'e2e/cases/mpa.ts'],
+      ['node', evjsSharedRuntime, 'verify'],
     ],
-    nonEmptyDirectories: [
-      'examples/basic/dist',
-      'examples/plugin-authoring/dist',
-    ],
-    directManifest: 'packages/bundler-utoopack/package.json',
-    candidateResolveFrom: 'packages/bundler-utoopack/package.json',
-    // The upstream lockfile contains an old workspace-local @utoo/pack copy.
-    // npm keeps that invalid nested install even after the direct manifest is
-    // patched, so remove only those generated copies and resolve the candidate
-    // from the root override installed above.
-    staleCandidateDirectories: [
-      'packages/bundler-utoopack/node_modules/@utoo/pack',
-      'packages/bundler-utoopack/node_modules/@utoo/pack-shared',
-    ],
+    nonEmptyDirectories: ['examples/mpa/dist/client'],
   },
 });
 

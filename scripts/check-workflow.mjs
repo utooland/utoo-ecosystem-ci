@@ -25,6 +25,7 @@ for (const suite of [
   'father',
   'dumi',
   'evjs',
+  'evjs-shared-runtime',
 ]) {
   assert.match(workflow, new RegExp(`- ${suite.replace('-', '\\-')}(?:\\n|$)`));
 }

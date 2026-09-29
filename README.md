@@ -18,6 +18,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
 | `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds and starts a minimal site based on Dumi's official template with utoopack |
 | `evjs` | `afx-team/evjs@main` | Builds EVJS packages, starts its basic app with `ev dev`, and runs its `bundler-utoopack` Playwright project |
+| `evjs-shared-runtime` | `afx-team/evjs@main` | Enables `sharedRuntime` in the disposable two-page MPA example, runs its Chromium E2E, and verifies both pages load the same runtime asset last |
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
@@ -41,6 +42,9 @@ ut ecosystem -- --suite father --pack latest
 ut ecosystem -- --suite ant-design-pro --pack 1.5.3
 ut ecosystem -- --suite ant-design --pack latest
 ut ecosystem -- --suite evjs --pack latest
+
+# Run the opt-in shared runtime regression against a candidate containing the feature
+ut ecosystem -- --suite evjs-shared-runtime --pack /path/to/utoo-pack.tgz --pack-shared /path/to/utoo-pack-shared.tgz
 
 # Inspect the exact plan without cloning or installing
 ut ecosystem -- --suite dumi --pack latest --dry-run
@@ -71,6 +75,8 @@ The **Utoopack ecosystem CI** workflow supports four entry points:
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
 In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the six consumer jobs.
+
+`evjs-shared-runtime` is an explicit suite and is not in the daily `all` matrix while the feature is still in a Utoo pull request. Select it with a source candidate that contains `optimization.sharedRuntime`.
 
 ### Call from the utoo repository
 

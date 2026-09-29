@@ -80,6 +80,7 @@ on:
           - father
           - dumi
           - evjs
+          - evjs-shared-runtime
         default: all
       consumer_ref:
         description: Optional ref for the selected consumer
@@ -154,7 +155,7 @@ jobs:
           case "$candidate_mode" in npm|source) ;; *) echo "Invalid candidate_mode: $candidate_mode" >&2; exit 2 ;; esac
           case "$suite" in
             all) matrix='["umi","ant-design-pro","ant-design","father","dumi","evjs"]' ;;
-            umi|ant-design-pro|ant-design|father|dumi|evjs) matrix="[\"${suite}\"]" ;;
+            umi|ant-design-pro|ant-design|father|dumi|evjs|evjs-shared-runtime) matrix="[\"${suite}\"]" ;;
             *) echo "Invalid suite: $suite" >&2; exit 2 ;;
           esac
 
