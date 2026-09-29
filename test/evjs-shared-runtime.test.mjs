@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { prepare, verify } from '../scripts/evjs-shared-runtime.mjs';
 
-test('EVJS MPA shared runtime check accepts a hashed runtime loaded last', (t) => {
+test('EVJS MPA shared runtime check verifies runtime content and script order', (t) => {
   const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'evjs-shared-runtime-'));
   t.after(() => fs.rmSync(repoDir, { recursive: true, force: true }));
   const exampleDir = path.join(repoDir, 'examples', 'mpa');
@@ -31,7 +31,10 @@ test('EVJS MPA shared runtime check accepts a hashed runtime loaded last', (t) =
     path.join(exampleDir, 'dist', 'deployment-metadata.json'),
     JSON.stringify({ paths: { publicDir: 'dist/client' }, documents }),
   );
-  fs.writeFileSync(path.join(publicDir, runtime), 'runtime');
+  fs.writeFileSync(
+    path.join(publicDir, runtime),
+    'const backend = { registerChunk() {}, loadChunkCached() {} };',
+  );
   for (const document of documents) {
     fs.writeFileSync(
       path.join(publicDir, document.fileName),
@@ -47,4 +50,29 @@ test('EVJS MPA shared runtime check accepts a hashed runtime loaded last', (t) =
     `<script src="/${runtime}"></script><script src="/about.js"></script><script src="/common.js"></script>`,
   );
   assert.throws(() => verify(repoDir), /about HTML must load entry assets/);
+
+  const withoutRuntime = documents.map((document) => ({
+    ...document,
+    assets: { js: [`${document.id}.js`, 'common.js'] },
+  }));
+  fs.writeFileSync(
+    path.join(exampleDir, 'dist', 'deployment-metadata.json'),
+    JSON.stringify({ paths: { publicDir: 'dist/client' }, documents: withoutRuntime }),
+  );
+  fs.writeFileSync(
+    path.join(publicDir, 'common.js'),
+    'console.log("shared chunk");',
+  );
+  for (const document of withoutRuntime) {
+    fs.writeFileSync(
+      path.join(publicDir, document.fileName),
+      document.assets.js
+        .map((asset) => `<script defer src="/${asset}"></script>`)
+        .join(''),
+    );
+  }
+  assert.throws(
+    () => verify(repoDir),
+    /final JS must contain the Turbopack browser runtime/,
+  );
 });

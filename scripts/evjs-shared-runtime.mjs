@@ -52,11 +52,16 @@ function scriptAssetNames(html) {
   );
 }
 
-function runtimeAsset(assets, pageId) {
+function runtimeAsset(assets, pageId, publicDir) {
   // EVJS uses [contenthash:8].js for chunks, so the runtime has no name prefix.
   const last = assets.at(-1);
   assert.ok(last?.endsWith('.js'), `${pageId} must end with a runtime JS asset`);
   assert.notEqual(last, assets.at(-2), `${pageId} runtime must be its own asset`);
+  const source = fs.readFileSync(path.join(publicDir, last), 'utf8');
+  assert.ok(
+    source.includes('registerChunk') && source.includes('loadChunkCached'),
+    `${pageId} final JS must contain the Turbopack browser runtime`,
+  );
   return last;
 }
 
@@ -75,7 +80,7 @@ export function verify(repoDir) {
     assert.ok(document, `Missing ${pageId} MPA document`);
     const assets = document.assets.js;
     assert.ok(Array.isArray(assets) && assets.length > 1);
-    runtimes.push(runtimeAsset(assets, pageId));
+    runtimes.push(runtimeAsset(assets, pageId, publicDir));
     entryAssets.push(assets.slice(0, -1));
 
     const html = fs.readFileSync(path.join(publicDir, document.fileName), 'utf8');
