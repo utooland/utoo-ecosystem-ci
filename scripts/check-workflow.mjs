@@ -18,16 +18,27 @@ for (const version of setupUtooVersions) {
   );
 }
 
-for (const suite of [
+const dailySuites = [
   'umi',
   'ant-design-pro',
   'ant-design',
   'father',
   'dumi',
   'evjs',
-  'evjs-shared-runtime',
-]) {
+];
+for (const suite of [...dailySuites, 'evjs-shared-runtime']) {
   assert.match(workflow, new RegExp(`- ${suite.replace('-', '\\-')}(?:\\n|$)`));
+}
+
+assert.match(workflow, /^\s+- release$/m, 'manual runs must offer release');
+for (const [suite, members] of [
+  ['all', dailySuites],
+  ['release', [...dailySuites, 'evjs-shared-runtime']],
+]) {
+  assert.ok(
+    workflow.includes(`${suite}) matrix='${JSON.stringify(members)}' ;;`),
+    `${suite} must select exactly ${members.join(', ')}`,
+  );
 }
 
 for (const line of workflow.split('\n')) {

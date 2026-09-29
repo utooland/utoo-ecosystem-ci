@@ -69,14 +69,14 @@ Consumer checkouts are disposable and live under `workspace/`. Use `--keep` to r
 
 The **Utoopack ecosystem CI** workflow supports four entry points:
 
-- Daily schedule: all suites against the npm `latest` tag.
-- Manual run: choose npm/source mode, one suite or all suites, and optionally a harness branch to validate.
+- Daily schedule: the six suites in `all` against the npm `latest` tag.
+- Manual run: choose npm/source mode, an individual suite, `all`, or `release`, and optionally a harness branch to validate.
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
 In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the selected consumer jobs.
 
-`evjs-shared-runtime` is an explicit suite and is not in the daily `all` matrix until an npm release contains `optimization.sharedRuntime`. In the meantime, select it in `source` mode with a Utoo ref that contains the feature.
+The workflow's `all` selector runs the six established suites, including on the daily schedule. Its `release` selector runs those six plus `evjs-shared-runtime`, so an Utoo release can validate the published package against all seven. Both selectors are workflow inputs, not names accepted by the local `ut ecosystem -- --suite` CLI. To run only the shared runtime check, select `evjs-shared-runtime` (or use `source` mode with a Utoo ref containing the feature before its npm release).
 
 ### Call from the utoo repository
 
@@ -104,6 +104,8 @@ jobs:
       harness_repository: utooland/utoo-ecosystem-ci
       harness_ref: main
 ```
+
+For a published Utoopack release, set `candidate_mode: npm`, `pack_spec` to the newly published version, and `suite: release` in the reusable workflow call. The harness ref must contain the `release` selector.
 
 No secrets are required for public repositories. GitHub-hosted runners need enough time and disk for the one-time Rust/NAPI source build; the source preparation job has a three-hour timeout and frees unused runner images first.
 
