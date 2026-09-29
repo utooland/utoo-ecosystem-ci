@@ -74,9 +74,9 @@ The **Utoopack ecosystem CI** workflow supports four entry points:
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
-In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the six consumer jobs.
+In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the selected consumer jobs.
 
-`evjs-shared-runtime` is an explicit suite and is not in the daily `all` matrix while the feature is still in a Utoo pull request. Select it with a source candidate that contains `optimization.sharedRuntime`.
+`evjs-shared-runtime` is an explicit suite and is not in the daily `all` matrix until an npm release contains `optimization.sharedRuntime`. In the meantime, select it in `source` mode with a Utoo ref that contains the feature.
 
 ### Call from the utoo repository
 
