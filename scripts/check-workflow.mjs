@@ -18,28 +18,24 @@ for (const version of setupUtooVersions) {
   );
 }
 
-const dailySuites = [
+const allSuites = [
   'umi',
   'ant-design-pro',
   'ant-design',
   'father',
   'dumi',
   'evjs',
+  'evjs-shared-runtime',
 ];
-for (const suite of [...dailySuites, 'evjs-shared-runtime']) {
+for (const suite of allSuites) {
   assert.match(workflow, new RegExp(`- ${suite.replace('-', '\\-')}(?:\\n|$)`));
 }
 
-assert.match(workflow, /^\s+- release$/m, 'manual runs must offer release');
-for (const [suite, members] of [
-  ['all', dailySuites],
-  ['release', [...dailySuites, 'evjs-shared-runtime']],
-]) {
-  assert.ok(
-    workflow.includes(`${suite}) matrix='${JSON.stringify(members)}' ;;`),
-    `${suite} must select exactly ${members.join(', ')}`,
-  );
-}
+assert.ok(
+  workflow.includes(`all) matrix='${JSON.stringify(allSuites)}' ;;`),
+  `all must select exactly ${allSuites.join(', ')}`,
+);
+assert.doesNotMatch(workflow, /^\s+- release$/m, 'manual runs must not offer a separate release selector');
 
 for (const line of workflow.split('\n')) {
   const match = line.match(/uses:\s+([^\s@]+)@([^\s#]+)/);

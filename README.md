@@ -43,7 +43,7 @@ ut ecosystem -- --suite ant-design-pro --pack 1.5.3
 ut ecosystem -- --suite ant-design --pack latest
 ut ecosystem -- --suite evjs --pack latest
 
-# Run the opt-in shared runtime regression against a candidate containing the feature
+# Run the shared runtime regression alone against a candidate containing the feature
 ut ecosystem -- --suite evjs-shared-runtime --pack /path/to/utoo-pack.tgz --pack-shared /path/to/utoo-pack-shared.tgz
 
 # Inspect the exact plan without cloning or installing
@@ -69,14 +69,14 @@ Consumer checkouts are disposable and live under `workspace/`. Use `--keep` to r
 
 The **Utoopack ecosystem CI** workflow supports four entry points:
 
-- Daily schedule: the six suites in `all` against the npm `latest` tag.
-- Manual run: choose npm/source mode, an individual suite, `all`, or `release`, and optionally a harness branch to validate.
+- Daily schedule: the seven suites in `all` against the npm `latest` tag.
+- Manual run: choose npm/source mode, an individual suite or `all`, and optionally a harness branch to validate.
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
 In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the selected consumer jobs.
 
-The workflow's `all` selector runs the six established suites, including on the daily schedule. Its `release` selector runs those six plus `evjs-shared-runtime`, so an Utoo release can validate the published package against all seven. Both selectors are workflow inputs, not names accepted by the local `ut ecosystem -- --suite` CLI. To run only the shared runtime check, select `evjs-shared-runtime` (or use `source` mode with a Utoo ref containing the feature before its npm release).
+The workflow's `all` selector runs all seven suites, including `evjs-shared-runtime`, on the daily schedule and for Utoopack releases. It is a workflow input, not a name accepted by the local `ut ecosystem -- --suite` CLI. To run only the shared runtime check, select `evjs-shared-runtime` (or use `source` mode with a Utoo ref containing the feature before its npm release). The npm `latest` package must contain `sharedRuntime` for the scheduled `all` run to pass.
 
 ### Call from the utoo repository
 
@@ -105,7 +105,7 @@ jobs:
       harness_ref: main
 ```
 
-For a published Utoopack release, set `candidate_mode: npm`, `pack_spec` to the newly published version, and `suite: release` in the reusable workflow call. The harness ref must contain the `release` selector.
+For a published Utoopack release, set `candidate_mode: npm`, `pack_spec` to the newly published version, and `suite: all` in the reusable workflow call. The harness ref must contain the `evjs-shared-runtime` suite.
 
 No secrets are required for public repositories. GitHub-hosted runners need enough time and disk for the one-time Rust/NAPI source build; the source preparation job has a three-hour timeout and frees unused runner images first.
 
