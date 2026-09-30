@@ -28,6 +28,7 @@ test('defines the requested ecosystem suites', () => {
     'father',
     'dumi',
     'evjs',
+    'evjs-shared-runtime',
   ]);
 });
 
@@ -101,6 +102,22 @@ test('EVJS runs its utoopack dev smoke and Playwright project', () => {
     'packages/bundler-utoopack/node_modules/@utoo/pack',
     'packages/bundler-utoopack/node_modules/@utoo/pack-shared',
   ]);
+});
+
+test('EVJS shared runtime runs the MPA browser test and checks emitted assets', () => {
+  const suite = SUITES['evjs-shared-runtime'];
+  assert.equal(suite.repository, SUITES.evjs.repository);
+  assert.deepEqual(suite.install, SUITES.evjs.install);
+  assert.equal(suite.test[0].join(' '), 'npx turbo build --filter=./packages/*');
+  assert.equal(path.basename(suite.test[1][1]), 'evjs-shared-runtime.mjs');
+  assert.equal(suite.test[1][2], 'prepare');
+  assert.equal(
+    suite.test[2].join(' '),
+    'npm run test:e2e -- --project=utoopack e2e/cases/mpa.ts',
+  );
+  assert.equal(path.basename(suite.test[3][1]), 'evjs-shared-runtime.mjs');
+  assert.equal(suite.test[3][2], 'verify');
+  assert.deepEqual(suite.nonEmptyDirectories, ['examples/mpa/dist/client']);
 });
 
 test('Father validates only its utoopack UMD example', () => {

@@ -18,16 +18,24 @@ for (const version of setupUtooVersions) {
   );
 }
 
-for (const suite of [
+const allSuites = [
   'umi',
   'ant-design-pro',
   'ant-design',
   'father',
   'dumi',
   'evjs',
-]) {
+  'evjs-shared-runtime',
+];
+for (const suite of allSuites) {
   assert.match(workflow, new RegExp(`- ${suite.replace('-', '\\-')}(?:\\n|$)`));
 }
+
+assert.ok(
+  workflow.includes(`all) matrix='${JSON.stringify(allSuites)}' ;;`),
+  `all must select exactly ${allSuites.join(', ')}`,
+);
+assert.doesNotMatch(workflow, /^\s+- release$/m, 'manual runs must not offer a separate release selector');
 
 for (const line of workflow.split('\n')) {
   const match = line.match(/uses:\s+([^\s@]+)@([^\s#]+)/);
