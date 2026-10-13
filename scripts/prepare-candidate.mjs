@@ -6,13 +6,19 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runCommand } from '../src/process.mjs';
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const result = {};
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (!['--source', '--out'].includes(flag) || !value) {
-      throw new Error('Usage: prepare-candidate.mjs --source <utoo> --out <dir>');
+    if (
+      !['--source', '--out', '--binding'].includes(flag) ||
+      !value ||
+      value.startsWith('--')
+    ) {
+      throw new Error(
+        'Usage: prepare-candidate.mjs --source <utoo> --out <dir> [--binding <pack.win32-x64-msvc.node>]',
+      );
     }
     result[flag.slice(2)] = path.resolve(value);
   }
@@ -28,7 +34,10 @@ async function capture(command, cwd) {
 }
 
 function checksum(file) {
-  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(fs.readFileSync(file))
+    .digest('hex');
 }
 
 export function resolvePackageDirectory(source, packagePath) {
@@ -37,6 +46,41 @@ export function resolvePackageDirectory(source, packagePath) {
     throw new Error(`Not a package directory: ${packageDirectory}`);
   }
   return packageDirectory;
+}
+
+export function validateWindowsBinding(binding) {
+  if (path.basename(binding) !== 'pack.win32-x64-msvc.node') {
+    throw new Error('Expected a pack.win32-x64-msvc.node Windows binding');
+  }
+  const stat = fs.statSync(binding);
+  if (!stat.isFile() || stat.size < 64) {
+    throw new Error(`Empty or invalid Windows binding: ${binding}`);
+  }
+  const fd = fs.openSync(binding, 'r');
+  try {
+    const dos = Buffer.alloc(64);
+    fs.readSync(fd, dos, 0, dos.length, 0);
+    const peOffset = dos.readUInt32LE(60);
+    if (
+      dos.readUInt16LE(0) !== 0x5a4d ||
+      peOffset < 64 ||
+      peOffset + 24 > stat.size
+    ) {
+      throw new Error(`Expected a PE Windows binding: ${binding}`);
+    }
+    const pe = Buffer.alloc(24);
+    fs.readSync(fd, pe, 0, pe.length, peOffset);
+    if (pe.readUInt32LE(0) !== 0x4550 || pe.readUInt16LE(4) !== 0x8664) {
+      throw new Error(`Expected an AMD64 PE Windows binding: ${binding}`);
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+  return {
+    file: path.basename(binding),
+    sha256: checksum(binding),
+    size: stat.size,
+  };
 }
 
 async function pack(source, temporary, packagePath, targetName) {
@@ -63,19 +107,36 @@ async function pack(source, temporary, packagePath, targetName) {
   return { file: targetName, sha256: checksum(to), size: fs.statSync(to).size };
 }
 
-async function main() {
-  const { source, out } = parseArgs(process.argv.slice(2));
+export async function prepareCandidate({ source, out, binding }) {
   if (!fs.existsSync(path.join(source, 'packages/pack/package.json'))) {
     throw new Error(`Not an utoo source checkout: ${source}`);
   }
+  const nativeBinding = binding ? validateWindowsBinding(binding) : undefined;
 
   fs.mkdirSync(out, { recursive: true });
   const temporary = fs.mkdtempSync(path.join(out, '.pack-'));
   try {
-    await runCommand(
-      ['npm', 'run', 'build:local', '--workspace', '@utoo/pack'],
-      { cwd: source },
-    );
+    if (binding) {
+      await runCommand(
+        ['npm', 'run', 'build', '--workspace', '@utoo/pack-shared'],
+        { cwd: source },
+      );
+      await runCommand(
+        ['npm', 'run', 'build:js', '--workspace', '@utoo/pack'],
+        { cwd: source },
+      );
+      for (const directory of ['cjs', 'esm']) {
+        fs.copyFileSync(
+          binding,
+          path.join(source, 'packages/pack', directory, nativeBinding.file),
+        );
+      }
+    } else {
+      await runCommand(
+        ['npm', 'run', 'build:local', '--workspace', '@utoo/pack'],
+        { cwd: source },
+      );
+    }
     const packShared = await pack(
       source,
       temporary,
@@ -92,6 +153,9 @@ async function main() {
     const metadata = {
       commit,
       createdAt: new Date().toISOString(),
+      ...(nativeBinding
+        ? { platform: 'win32', target: 'x86_64-pc-windows-msvc', nativeBinding }
+        : {}),
       packages: {
         '@utoo/pack': packPackage,
         '@utoo/pack-shared': packShared,
@@ -102,6 +166,7 @@ async function main() {
       `${JSON.stringify(metadata, null, 2)}\n`,
     );
     console.log(JSON.stringify(metadata, null, 2));
+    return metadata;
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
@@ -111,5 +176,5 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  await main();
+  await prepareCandidate(parseArgs(process.argv.slice(2)));
 }

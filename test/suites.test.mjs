@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
-import { SUITE_NAMES, SUITES } from '../src/suites.mjs';
+import { getSuite, SUITE_NAMES, SUITES } from '../src/suites.mjs';
 
 const commandOf = (step) => (Array.isArray(step) ? step : step.command);
 
@@ -18,6 +18,19 @@ test('Umi runs its native utoopack and qiankun E2E coverage', () => {
     'corepack pnpm --dir examples/qiankun-slave e2e:ci',
     'corepack pnpm --dir examples/with-utoopack-qiankun-master e2e:ci',
   ]);
+});
+
+test('Windows Umi covers framework build and browser dev runtime without qiankun', () => {
+  const suite = getSuite('umi', 'win32');
+  assert.deepEqual(suite.test, SUITES.umi.test.slice(0, 3));
+  assert.deepEqual(suite.install, SUITES.umi.install);
+  assert.deepEqual(suite.nonEmptyDirectories, [
+    'packages/bundler-utoopack/dist',
+  ]);
+  assert.equal(getSuite('umi', 'linux'), SUITES.umi);
+  assert.equal(SUITES.umi.test.length, 6);
+  assert.equal(SUITES.umi.nonEmptyDirectories.length, 3);
+  assert.equal(getSuite('father', 'win32'), SUITES.father);
 });
 
 test('defines the requested ecosystem suites', () => {
@@ -108,7 +121,10 @@ test('EVJS shared runtime runs the MPA browser test and checks emitted assets', 
   const suite = SUITES['evjs-shared-runtime'];
   assert.equal(suite.repository, SUITES.evjs.repository);
   assert.deepEqual(suite.install, SUITES.evjs.install);
-  assert.equal(suite.test[0].join(' '), 'npx turbo build --filter=./packages/*');
+  assert.equal(
+    suite.test[0].join(' '),
+    'npx turbo build --filter=./packages/*',
+  );
   assert.equal(path.basename(suite.test[1][1]), 'evjs-shared-runtime.mjs');
   assert.equal(suite.test[1][2], 'prepare');
   assert.equal(
@@ -137,7 +153,10 @@ test('Dumi builds its local source with a minimal utoopack site example', () => 
     'corepack pnpm install --no-frozen-lockfile --ignore-scripts',
   ]);
   assert.equal(testCommands[0], 'corepack pnpm exec father build');
-  assert.equal(path.basename(SUITES.dumi.test[1][1]), 'prepare-dumi-example.mjs');
+  assert.equal(
+    path.basename(SUITES.dumi.test[1][1]),
+    'prepare-dumi-example.mjs',
+  );
   assert.equal(
     testCommands[2],
     'corepack pnpm --dir examples/utoopack-ecosystem-ci build',

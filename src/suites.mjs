@@ -203,7 +203,14 @@ export const SUITES = Object.freeze({
     test: [
       evjsSuite.test[0],
       ['node', evjsSharedRuntime, 'prepare'],
-      ['npm', 'run', 'test:e2e', '--', '--project=utoopack', 'e2e/cases/mpa.ts'],
+      [
+        'npm',
+        'run',
+        'test:e2e',
+        '--',
+        '--project=utoopack',
+        'e2e/cases/mpa.ts',
+      ],
       ['node', evjsSharedRuntime, 'verify'],
     ],
     nonEmptyDirectories: ['examples/mpa/dist/client'],
@@ -212,12 +219,19 @@ export const SUITES = Object.freeze({
 
 export const SUITE_NAMES = Object.freeze(Object.keys(SUITES));
 
-export function getSuite(name) {
+export function getSuite(name, platform = process.platform) {
   const suite = SUITES[name];
   if (!suite) {
     throw new Error(
       `Unknown suite "${name}". Available suites: ${SUITE_NAMES.join(', ')}`,
     );
+  }
+  if (name === 'umi' && platform === 'win32') {
+    return {
+      ...suite,
+      test: suite.test.slice(0, 3),
+      nonEmptyDirectories: ['packages/bundler-utoopack/dist'],
+    };
   }
   return suite;
 }
