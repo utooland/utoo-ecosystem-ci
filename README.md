@@ -22,6 +22,8 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
+Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The seven Linux suites retain their coverage, including Umi's qiankun E2Es.
+
 For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
 
 ## Run locally
@@ -75,6 +77,8 @@ The **Utoopack ecosystem CI** workflow supports four entry points:
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
 In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the selected consumer jobs.
+
+Source runs selecting Windows also prepare a Windows candidate using Utoo's existing cross-compilation scripts. Linux and Windows tarballs are separate artifacts; the Windows binding is embedded in the CJS and ESM wrappers. npm runs install the published binding normally.
 
 The workflow's `all` selector runs all seven suites, including `evjs-shared-runtime`, on the daily schedule and for Utoopack releases. It is a workflow input, not a name accepted by the local `ut ecosystem -- --suite` CLI. To run only the shared runtime check, select `evjs-shared-runtime` (or use `source` mode with a Utoo ref containing the feature before its npm release). The npm `latest` package must contain `sharedRuntime` for the scheduled `all` run to pass.
 

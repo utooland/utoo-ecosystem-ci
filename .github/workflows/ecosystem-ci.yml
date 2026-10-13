@@ -120,6 +120,7 @@ jobs:
       harness_repository: ${{ steps.resolve.outputs.harness_repository }}
       harness_ref: ${{ steps.resolve.outputs.harness_ref }}
       matrix: ${{ steps.resolve.outputs.matrix }}
+      candidate_platforms: ${{ steps.resolve.outputs.candidate_platforms }}
     steps:
       - name: Resolve and validate inputs
         id: resolve
@@ -158,6 +159,16 @@ jobs:
             umi|ant-design-pro|ant-design|father|dumi|evjs|evjs-shared-runtime) matrix="[\"${suite}\"]" ;;
             *) echo "Invalid suite: $suite" >&2; exit 2 ;;
           esac
+          candidate_platforms='["linux"]'
+          if [[ "$suite" == all || "$suite" == umi ]]; then
+            candidate_platforms='["linux","windows"]'
+          fi
+          matrix=$(node -e '
+            const suites = JSON.parse(process.argv[1]);
+            const jobs = suites.map(suite => ({ suite, os: "ubuntu-latest" }));
+            if (suites.includes("umi")) jobs.push({ suite: "umi", os: "windows-2022" });
+            console.log(JSON.stringify(jobs));
+          ' "$matrix")
 
           repository_pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
           ref_pattern='^[A-Za-z0-9._/-]+$'
@@ -179,14 +190,21 @@ jobs:
             echo "harness_repository=$harness_repository"
             echo "harness_ref=$harness_ref"
             echo "matrix=$matrix"
+            echo "candidate_platforms=$candidate_platforms"
           } >> "$GITHUB_OUTPUT"
 
   prepare_candidate:
-    name: Build source candidate
+    name: Build source candidate (${{ matrix.platform }})
     needs: config
     if: needs.config.outputs.candidate_mode == 'source'
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.config.outputs.candidate_platforms) }}
+    env:
+      PACK_WINDOWS_BUILDER_IMAGE: utoo-pack-windows-builder:ecosystem
     steps:
       - name: Checkout ecosystem harness
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -210,6 +228,26 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Set up Docker Buildx for Windows
+        if: matrix.platform == 'windows'
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        with:
+          driver-opts: image=moby/buildkit@sha256:63db51c9b30208a7c2b1c40392c7ebb9ce2f85ba238a18a85420f8f5ea2d4684
+
+      - name: Build Windows builder image
+        if: matrix.platform == 'windows'
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.0.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: 'false'
+        with:
+          context: candidate/utoo
+          file: candidate/utoo/scripts/pack-windows-builder.Dockerfile
+          load: true
+          provenance: false
+          tags: ${{ env.PACK_WINDOWS_BUILDER_IMAGE }}
+          cache-from: type=gha,scope=ecosystem-windows-builder-v1
+          cache-to: type=gha,mode=max,scope=ecosystem-windows-builder-v1
+
       - name: Initialize utoo submodules
         working-directory: candidate/utoo
         run: git submodule update --init --recursive --depth 1
@@ -232,16 +270,36 @@ jobs:
           HUSKY: '0'
 
       - name: Show Rust toolchain
+        if: matrix.platform == 'linux'
         working-directory: candidate/utoo
         run: rustup show active-toolchain
 
+      - name: Build Windows native binding
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: |
+          binding_version=$(node -p 'require("./candidate/utoo/packages/pack/package.json").version')
+          docker run --rm \
+            --env CI=1 --env CARGO_INCREMENTAL=0 \
+            --env TARGET=x86_64-pc-windows-msvc --env npm_new_version="$binding_version" \
+            --volume "$GITHUB_WORKSPACE/candidate/utoo:/build" --workdir /build \
+            "$PACK_WINDOWS_BUILDER_IMAGE" /bin/bash /build/scripts/pack-windows-build.sh
+
       - name: Build and pack candidate
-        run: node scripts/prepare-candidate.mjs --source candidate/utoo --out candidate-artifacts
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          args=(--source candidate/utoo --out candidate-artifacts)
+          if [[ "$PLATFORM" == windows ]]; then
+            args+=(--binding candidate/utoo/packages/pack/src/pack.win32-x64-msvc.node)
+          fi
+          node scripts/prepare-candidate.mjs "${args[@]}"
 
       - name: Upload candidate packages
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: utoopack-candidate
+          name: ${{ matrix.platform == 'windows' && 'utoopack-windows-candidate' || 'utoopack-candidate' }}
           path: candidate-artifacts/
           if-no-files-found: error
           retention-days: 3
@@ -282,7 +340,7 @@ jobs:
         run: ut check:workflow
 
   ecosystem:
-    name: ${{ matrix.suite }} E2E
+    name: ${{ matrix.suite }} E2E (${{ matrix.os }})
     needs: [config, prepare_candidate, harness_check]
     if: >-
       always() &&
@@ -292,8 +350,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: ${{ fromJSON(needs.config.outputs.matrix) }}
-    runs-on: ubuntu-latest
+        include: ${{ fromJSON(needs.config.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     steps:
       - name: Checkout ecosystem harness
@@ -322,7 +380,7 @@ jobs:
         if: needs.config.outputs.candidate_mode == 'source'
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: utoopack-candidate
+          name: ${{ matrix.os == 'windows-2022' && 'utoopack-windows-candidate' || 'utoopack-candidate' }}
           path: candidate-artifacts
 
       - name: Run ecosystem suite

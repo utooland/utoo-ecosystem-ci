@@ -11,8 +11,8 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (!['--source', '--out'].includes(flag) || !value) {
-      throw new Error('Usage: prepare-candidate.mjs --source <utoo> --out <dir>');
+    if (!['--source', '--out', '--binding'].includes(flag) || !value) {
+      throw new Error('Usage: prepare-candidate.mjs --source <utoo> --out <dir> [--binding <pack.win32-x64-msvc.node>]');
     }
     result[flag.slice(2)] = path.resolve(value);
   }
@@ -64,7 +64,7 @@ async function pack(source, temporary, packagePath, targetName) {
 }
 
 async function main() {
-  const { source, out } = parseArgs(process.argv.slice(2));
+  const { source, out, binding } = parseArgs(process.argv.slice(2));
   if (!fs.existsSync(path.join(source, 'packages/pack/package.json'))) {
     throw new Error(`Not an utoo source checkout: ${source}`);
   }
@@ -72,10 +72,20 @@ async function main() {
   fs.mkdirSync(out, { recursive: true });
   const temporary = fs.mkdtempSync(path.join(out, '.pack-'));
   try {
-    await runCommand(
-      ['npm', 'run', 'build:local', '--workspace', '@utoo/pack'],
-      { cwd: source },
-    );
+    const builds = binding
+      ? [['build', '@utoo/pack-shared'], ['build:js', '@utoo/pack']]
+      : [['build:local', '@utoo/pack']];
+    for (const [script, workspace] of builds) {
+      await runCommand(['npm', 'run', script, '--workspace', workspace], { cwd: source });
+    }
+    if (binding) {
+      for (const directory of ['cjs', 'esm']) {
+        fs.copyFileSync(
+          binding,
+          path.join(source, 'packages/pack', directory, 'pack.win32-x64-msvc.node'),
+        );
+      }
+    }
     const packShared = await pack(
       source,
       temporary,

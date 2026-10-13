@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { resolveCommand, runCommand } from '../src/process.mjs';
 
 const URL = 'http://127.0.0.1:9527/';
 const READY_PATTERN = /utoo pack v.* ready/;
@@ -26,20 +27,24 @@ export function enableUtoopack(configPath) {
 }
 
 function startServer(repoDir) {
-  const server = spawn(
+  const [executable, ...args] = resolveCommand([
     'corepack',
-    ['pnpm', '--dir', 'examples/with-use-model', 'dev'],
-    {
-      cwd: repoDir,
-      detached: process.platform !== 'win32',
-      env: {
-        ...process.env,
-        FORCE_UTOOPACK: '1',
-        PORT: '9527',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
+    'pnpm',
+    '--dir',
+    'examples/with-use-model',
+    'dev',
+  ]);
+  const server = spawn(executable, args, {
+    cwd: repoDir,
+    shell: false,
+    detached: process.platform !== 'win32',
+    env: {
+      ...process.env,
+      FORCE_UTOOPACK: '1',
+      PORT: '9527',
     },
-  );
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
 
   let log = '';
   const state = { spawnError: null };
@@ -139,22 +144,24 @@ async function assertBrowserRuntime(repoDir) {
 }
 
 async function stopServer(server) {
-  if (server.exitCode !== null || server.signalCode !== null) return;
+  if (!server.pid || server.exitCode !== null || server.signalCode !== null) return;
 
-  const exited = new Promise((resolve) => server.once('exit', resolve));
   if (process.platform === 'win32') {
-    server.kill('SIGTERM');
-  } else {
-    process.kill(-server.pid, 'SIGTERM');
+    try {
+      await runCommand(['taskkill.exe', '/PID', String(server.pid), '/T', '/F'], {
+        capture: true,
+      });
+    } catch (error) {
+      if (server.exitCode === null && server.signalCode === null) throw error;
+    }
+    return;
   }
 
+  const exited = new Promise((resolve) => server.once('exit', resolve));
+  process.kill(-server.pid, 'SIGTERM');
   await Promise.race([exited, sleep(5_000)]);
   if (server.exitCode === null && server.signalCode === null) {
-    if (process.platform === 'win32') {
-      server.kill('SIGKILL');
-    } else {
-      process.kill(-server.pid, 'SIGKILL');
-    }
+    process.kill(-server.pid, 'SIGKILL');
   }
 }
 

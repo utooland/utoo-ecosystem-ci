@@ -212,12 +212,19 @@ export const SUITES = Object.freeze({
 
 export const SUITE_NAMES = Object.freeze(Object.keys(SUITES));
 
-export function getSuite(name) {
+export function getSuite(name, platform = process.platform) {
   const suite = SUITES[name];
   if (!suite) {
     throw new Error(
       `Unknown suite "${name}". Available suites: ${SUITE_NAMES.join(', ')}`,
     );
+  }
+  if (name === 'umi' && platform === 'win32') {
+    return {
+      ...suite,
+      test: suite.test.slice(0, 3),
+      nonEmptyDirectories: ['packages/bundler-utoopack/dist'],
+    };
   }
   return suite;
 }

@@ -1,4 +1,23 @@
 import { spawn } from 'node:child_process';
+import path from 'node:path';
+
+const NODE_CLIS = {
+  npm: 'npm/bin/npm-cli.js',
+  corepack: 'corepack/dist/corepack.js',
+};
+
+export function resolveCommand(command) {
+  if (process.platform !== 'win32') return command;
+  const [executable, ...args] = command;
+  const cli = NODE_CLIS[executable.replace(/\.cmd$/i, '').toLowerCase()];
+  return cli
+    ? [
+        process.execPath,
+        path.join(path.dirname(process.execPath), 'node_modules', cli),
+        ...args,
+      ]
+    : command;
+}
 
 export function formatCommand(command) {
   return command
@@ -8,12 +27,13 @@ export function formatCommand(command) {
 
 export async function runCommand(command, options = {}) {
   const { cwd = process.cwd(), env = {}, capture = false } = options;
-  const [executable, ...args] = command;
+  const [executable, ...args] = resolveCommand(command);
   const label = `${cwd} $ ${formatCommand(command)}`;
   console.log(`\n${label}`);
 
   const child = spawn(executable, args, {
     cwd,
+    shell: false,
     env: { ...process.env, ...env },
     stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
   });
