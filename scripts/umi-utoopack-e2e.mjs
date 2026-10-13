@@ -2,20 +2,14 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { spawnCommand, stopProcessTree } from '../src/process.mjs';
+import { resolveCommand, runCommand } from '../src/process.mjs';
 
 const URL = 'http://127.0.0.1:9527/';
 const READY_PATTERN = /utoo pack v.* ready/;
-const EXPECTED_TEXTS = [
-  'todos',
-  'foo',
-  'bar',
-  'count',
-  '123',
-  'postcss-runtime',
-];
+const EXPECTED_TEXTS = ['todos', 'foo', 'bar', 'count', '123', 'postcss-runtime'];
 const MAX_LOG_LENGTH = 200_000;
 
 const sleep = (milliseconds) =>
@@ -32,21 +26,25 @@ export function enableUtoopack(configPath) {
   fs.writeFileSync(configPath, updated);
 }
 
-export function startServer(repoDir, options = {}) {
-  const server = spawnCommand(
-    ['corepack', 'pnpm', '--dir', 'examples/with-use-model', 'dev'],
-    {
-      ...options,
-      cwd: repoDir,
-      detached: (options.platform ?? process.platform) !== 'win32',
-      env: {
-        ...process.env,
-        FORCE_UTOOPACK: '1',
-        PORT: '9527',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
+function startServer(repoDir) {
+  const [executable, ...args] = resolveCommand([
+    'corepack',
+    'pnpm',
+    '--dir',
+    'examples/with-use-model',
+    'dev',
+  ]);
+  const server = spawn(executable, args, {
+    cwd: repoDir,
+    shell: false,
+    detached: process.platform !== 'win32',
+    env: {
+      ...process.env,
+      FORCE_UTOOPACK: '1',
+      PORT: '9527',
     },
-  );
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
 
   let log = '';
   const state = { spawnError: null };
@@ -76,9 +74,7 @@ async function waitForServer({ server, getLog, getSpawnError }) {
     const spawnError = getSpawnError();
     if (spawnError) throw spawnError;
     if (server.exitCode !== null || server.signalCode !== null) {
-      throw new Error(
-        `Umi dev server exited before it was ready.\n${getLog()}`,
-      );
+      throw new Error(`Umi dev server exited before it was ready.\n${getLog()}`);
     }
 
     try {
@@ -92,9 +88,7 @@ async function waitForServer({ server, getLog, getSpawnError }) {
     await sleep(1_000);
   }
 
-  throw new Error(
-    `Timed out waiting for the utoopack dev server.\n${getLog()}`,
-  );
+  throw new Error(`Timed out waiting for the utoopack dev server.\n${getLog()}`);
 }
 
 async function assertBrowserRuntime(repoDir) {
@@ -115,10 +109,7 @@ async function assertBrowserRuntime(repoDir) {
     let body = '';
 
     while (Date.now() - started < 60_000) {
-      body = await page
-        .locator('body')
-        .innerText()
-        .catch(() => '');
+      body = await page.locator('body').innerText().catch(() => '');
       if (errors.length > 0) {
         throw new Error(
           `Browser runtime errors:\n${errors.join('\n')}\n\nBody:\n${body}`,
@@ -132,9 +123,7 @@ async function assertBrowserRuntime(repoDir) {
           .catch(() => '');
         if (markerColor !== 'rgb(1, 2, 3)') {
           throw new Error(
-            `Expected utoopack PostCSS marker color rgb(1, 2, 3), got ${
-              markerColor || '(empty)'
-            }`,
+            `Expected utoopack PostCSS marker color rgb(1, 2, 3), got ${markerColor || '(empty)'}`,
           );
         }
         return;
@@ -147,12 +136,32 @@ async function assertBrowserRuntime(repoDir) {
     }
 
     throw new Error(
-      `Timed out waiting for page text.\nExpected: ${EXPECTED_TEXTS.join(
-        ', ',
-      )}\nLast body:\n${body}`,
+      `Timed out waiting for page text.\nExpected: ${EXPECTED_TEXTS.join(', ')}\nLast body:\n${body}`,
     );
   } finally {
     await browser.close();
+  }
+}
+
+async function stopServer(server) {
+  if (!server.pid || server.exitCode !== null || server.signalCode !== null) return;
+
+  if (process.platform === 'win32') {
+    try {
+      await runCommand(['taskkill.exe', '/PID', String(server.pid), '/T', '/F'], {
+        capture: true,
+      });
+    } catch (error) {
+      if (server.exitCode === null && server.signalCode === null) throw error;
+    }
+    return;
+  }
+
+  const exited = new Promise((resolve) => server.once('exit', resolve));
+  process.kill(-server.pid, 'SIGTERM');
+  await Promise.race([exited, sleep(5_000)]);
+  if (server.exitCode === null && server.signalCode === null) {
+    process.kill(-server.pid, 'SIGKILL');
   }
 }
 
@@ -164,13 +173,10 @@ export async function main(repoDir = process.cwd()) {
     await waitForServer(runningServer);
     await assertBrowserRuntime(repoDir);
   } finally {
-    await stopProcessTree(runningServer.server);
+    await stopServer(runningServer.server);
   }
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await main();
 }

@@ -203,14 +203,7 @@ export const SUITES = Object.freeze({
     test: [
       evjsSuite.test[0],
       ['node', evjsSharedRuntime, 'prepare'],
-      [
-        'npm',
-        'run',
-        'test:e2e',
-        '--',
-        '--project=utoopack',
-        'e2e/cases/mpa.ts',
-      ],
+      ['npm', 'run', 'test:e2e', '--', '--project=utoopack', 'e2e/cases/mpa.ts'],
       ['node', evjsSharedRuntime, 'verify'],
     ],
     nonEmptyDirectories: ['examples/mpa/dist/client'],

@@ -22,7 +22,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
-The seven suites run on Linux. Selecting `umi` or `all` also runs Umi's native utoopack dev/browser E2E on Windows x64. The Windows lane builds the local framework, starts `with-use-model`, checks the rendered page and PostCSS output, and fails on browser errors. This exercises Windows absolute-path resolution, including Umi's process polyfill. The additional qiankun E2Es remain in the Linux Umi suite.
+Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The seven Linux suites retain their coverage, including Umi's qiankun E2Es.
 
 For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
 
@@ -78,9 +78,7 @@ The **Utoopack ecosystem CI** workflow supports four entry points:
 
 In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the selected consumer jobs.
 
-When Windows Umi is selected, source mode also cross-compiles a Windows AMD64 binding using Utoo's `pack-windows-builder.Dockerfile` and `pack-windows-build.sh`. This runs in parallel with Linux candidate preparation and produces a separate `utoopack-windows-candidate` artifact. The harness validates the binding's PE architecture, builds the JS wrappers, and embeds the binding in both CJS and ESM before packing. Its metadata records the source commit and binding checksum. No candidate packages are published. In npm mode, the Windows runner installs the published Windows binding normally.
-
-The final **Utoopack ecosystem CI success** check requires both Linux suites and the selected Windows Umi job to pass. A failed, cancelled, or unexpectedly skipped Windows job fails the final check; source mode also requires Windows candidate preparation to succeed. Other individual suite selections skip the Windows jobs.
+Source runs selecting Windows also prepare a Windows candidate using Utoo's existing cross-compilation scripts. Linux and Windows tarballs are separate artifacts; the Windows binding is embedded in the CJS and ESM wrappers. npm runs install the published binding normally.
 
 The workflow's `all` selector runs all seven suites, including `evjs-shared-runtime`, on the daily schedule and for Utoopack releases. It is a workflow input, not a name accepted by the local `ut ecosystem -- --suite` CLI. To run only the shared runtime check, select `evjs-shared-runtime` (or use `source` mode with a Utoo ref containing the feature before its npm release). The npm `latest` package must contain `sharedRuntime` for the scheduled `all` run to pass.
 
@@ -113,7 +111,7 @@ jobs:
 
 For a published Utoopack release, set `candidate_mode: npm`, `pack_spec` to the newly published version, and `suite: all` in the reusable workflow call. The harness ref must contain the `evjs-shared-runtime` suite.
 
-No secrets are required for public repositories. GitHub-hosted runners need enough time and disk for the Rust/NAPI source builds; each source preparation job has a three-hour timeout and frees unused runner images first. The Windows builder image uses a GitHub Actions cache. Its first build can take longer than later runs.
+No secrets are required for public repositories. GitHub-hosted runners need enough time and disk for the one-time Rust/NAPI source build; the source preparation job has a three-hour timeout and frees unused runner images first.
 
 ## Dispatch payload example
 
@@ -127,6 +125,6 @@ gh api --method POST repos/utooland/utoo-ecosystem-ci/dispatches \
 
 ## Maintenance
 
-This repository itself uses Utoo (`ut install`, `ut test`, and `ut lint`) and keeps an npm-compatible `package-lock.json`, which Utoo reads and updates. JavaScript is linted with `@utoo/lint`; its files, ignores, and rules live in `utlint.config.ts`. `ut check:workflow` enforces the GitHub Actions SHA policy and verifies that Windows artifacts, suite selection, and the final success gate retain the required coverage. Consumer checkouts generally use the package manager declared by each upstream repository; the large Ant Design and Ant Design Pro dependency graphs use Utoo for faster installation while retaining their upstream npm scripts and npm-compatible dependency overrides.
+This repository itself uses Utoo (`ut install`, `ut test`, and `ut lint`) and keeps an npm-compatible `package-lock.json`, which Utoo reads and updates. JavaScript is linted with `@utoo/lint`; its files, ignores, and rules live in `utlint.config.ts`. `ut check:workflow` separately enforces the GitHub Actions SHA policy. Consumer checkouts generally use the package manager declared by each upstream repository; the large Ant Design and Ant Design Pro dependency graphs use Utoo for faster installation while retaining their upstream npm scripts and npm-compatible dependency overrides.
 
 Suite commands live in `src/suites.mjs`. Keep them aligned with the consumer repositories' own CI and examples. External GitHub Actions are pinned to full commit SHAs; `ut check:workflow` enforces that policy.
