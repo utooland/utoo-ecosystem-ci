@@ -20,6 +20,7 @@ export function parseArgs(argv) {
     ['--suite', 'suite'],
     ['--pack', 'pack'],
     ['--pack-shared', 'packShared'],
+    ['--pack-cli', 'packCli'],
     ['--ref', 'ref'],
     ['--repo', 'repo'],
     ['--workspace', 'workspace'],
@@ -102,9 +103,9 @@ function removeStaleCandidateDirectories(repoDir, directories = []) {
   }
 }
 
-function getInstalledPack(repoDir, resolveFrom = 'package.json') {
+function getInstalledPack(repoDir, resolveFrom = 'package.json', name = '@utoo/pack') {
   const requireFromConsumer = createRequire(path.join(repoDir, resolveFrom));
-  const manifest = requireFromConsumer.resolve('@utoo/pack/package.json');
+  const manifest = requireFromConsumer.resolve(`${name}/package.json`);
   const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'));
   return { manifest, version: pkg.version };
 }
@@ -171,6 +172,13 @@ export async function run(options) {
   let packSharedSpec = normalizeDependencySpec(
     options.packShared ?? options.pack,
   );
+  let packCliSpec;
+  if (suite.requiresPackCli) {
+    if (packSpec.startsWith('file:') && !options.packCli) {
+      throw new Error('The Umi routing regression requires --pack-cli for a local candidate');
+    }
+    packCliSpec = normalizeDependencySpec(options.packCli ?? options.pack);
+  }
   const repoDir = path.join(options.workspace, options.suite);
 
   if (options.dryRun) {
@@ -183,6 +191,7 @@ export async function run(options) {
           repoDir,
           packSpec,
           packSharedSpec,
+          ...(packCliSpec ? { packCliSpec } : {}),
           commands: [...suite.install, ...suite.test].map(
             (item) => formatCommand(commandShape(item).command),
           ),
@@ -199,6 +208,9 @@ export async function run(options) {
     '@utoo/pack-shared',
     packSharedSpec,
   );
+  if (packCliSpec) {
+    packCliSpec = await resolveRegistrySpec('@utoo/pack-cli', packCliSpec);
+  }
 
   fs.mkdirSync(options.workspace, { recursive: true });
   if (!options.keep) {
@@ -208,7 +220,7 @@ export async function run(options) {
     await cloneAtRef(repository, ref, repoDir);
   }
 
-  patchConsumerManifest({ repoDir, suite, packSpec, packSharedSpec });
+  patchConsumerManifest({ repoDir, suite, packSpec, packSharedSpec, packCliSpec });
 
   const commonEnv = {
     CI: 'true',
@@ -239,6 +251,13 @@ export async function run(options) {
     throw new Error(
       `Candidate mismatch: requested @utoo/pack@${packSpec}, but installed ${pack.version}`,
     );
+  }
+  if (packCliSpec) {
+    const cli = getInstalledPack(repoDir, 'package.json', '@utoo/pack-cli');
+    console.log(`Using @utoo/pack-cli@${cli.version} from ${cli.manifest}`);
+    if (!packCliSpec.startsWith('file:') && cli.version !== packCliSpec) {
+      throw new Error(`CLI candidate mismatch: requested ${packCliSpec}, but installed ${cli.version}`);
+    }
   }
 
   for (const item of suite.test) {

@@ -22,8 +22,8 @@ function parseArgs(argv) {
   return result;
 }
 
-async function capture(command, cwd) {
-  const { stdout } = await runCommand(command, { cwd, capture: true });
+async function capture(command, cwd, run = runCommand) {
+  const { stdout } = await run(command, { cwd, capture: true });
   return stdout.trim();
 }
 
@@ -39,7 +39,7 @@ export function resolvePackageDirectory(source, packagePath) {
   return packageDirectory;
 }
 
-async function pack(source, temporary, packagePath, targetName) {
+async function pack(source, temporary, packagePath, targetName, run) {
   const packageDirectory = resolvePackageDirectory(source, packagePath);
   const stdout = await capture(
     [
@@ -52,6 +52,7 @@ async function pack(source, temporary, packagePath, targetName) {
       packageDirectory,
     ],
     source,
+    run,
   );
   const result = JSON.parse(stdout);
   if (!Array.isArray(result) || !result[0]?.filename) {
@@ -63,8 +64,7 @@ async function pack(source, temporary, packagePath, targetName) {
   return { file: targetName, sha256: checksum(to), size: fs.statSync(to).size };
 }
 
-async function main() {
-  const { source, out, binding } = parseArgs(process.argv.slice(2));
+export async function prepareCandidate({ source, out, binding }, run = runCommand) {
   if (!fs.existsSync(path.join(source, 'packages/pack/package.json'))) {
     throw new Error(`Not an utoo source checkout: ${source}`);
   }
@@ -76,8 +76,11 @@ async function main() {
       ? [['build', '@utoo/pack-shared'], ['build:js', '@utoo/pack']]
       : [['build:local', '@utoo/pack']];
     for (const [script, workspace] of builds) {
-      await runCommand(['npm', 'run', script, '--workspace', workspace], { cwd: source });
+      await run(['npm', 'run', script, '--workspace', workspace], { cwd: source });
     }
+    await run(['npm', 'run', 'build', '--workspace', '@utoo/pack-cli'], {
+      cwd: source,
+    });
     if (binding) {
       for (const directory of ['cjs', 'esm']) {
         fs.copyFileSync(
@@ -91,20 +94,30 @@ async function main() {
       temporary,
       'packages/pack-shared',
       'utoo-pack-shared.tgz',
+      run,
     );
     const packPackage = await pack(
       source,
       temporary,
       'packages/pack',
       'utoo-pack.tgz',
+      run,
     );
-    const commit = await capture(['git', 'rev-parse', 'HEAD'], source);
+    const packCli = await pack(
+      source,
+      temporary,
+      'packages/pack-cli',
+      'utoo-pack-cli.tgz',
+      run,
+    );
+    const commit = await capture(['git', 'rev-parse', 'HEAD'], source, run);
     const metadata = {
       commit,
       createdAt: new Date().toISOString(),
       packages: {
         '@utoo/pack': packPackage,
         '@utoo/pack-shared': packShared,
+        '@utoo/pack-cli': packCli,
       },
     };
     fs.writeFileSync(
@@ -112,6 +125,7 @@ async function main() {
       `${JSON.stringify(metadata, null, 2)}\n`,
     );
     console.log(JSON.stringify(metadata, null, 2));
+    return metadata;
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
@@ -121,5 +135,5 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  await main();
+  await prepareCandidate(parseArgs(process.argv.slice(2)));
 }

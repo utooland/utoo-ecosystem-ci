@@ -5,6 +5,9 @@ const ut = (...args) => ['ut', ...args];
 const umiUtoopackE2E = fileURLToPath(
   new URL('../scripts/umi-utoopack-e2e.mjs', import.meta.url),
 );
+const cliHistoryFallback = fileURLToPath(
+  new URL('../scripts/cli-history-fallback.mjs', import.meta.url),
+);
 const prepareDumiExample = fileURLToPath(
   new URL('../scripts/prepare-dumi-example.mjs', import.meta.url),
 );
@@ -54,6 +57,7 @@ export const SUITES = Object.freeze({
     repository: 'umijs/umi',
     ref: 'master',
     packageManager: 'pnpm',
+    requiresPackCli: true,
     install: [pnpm('install', '--no-frozen-lockfile')],
     test: [
       // Mirror Umi's native utoopack E2E workflow: build the local framework
@@ -71,6 +75,7 @@ export const SUITES = Object.freeze({
       ),
       pnpm('exec', 'playwright', 'install', 'chromium'),
       ['node', umiUtoopackE2E],
+      ['node', cliHistoryFallback],
       // Mirror Umi's qiankun E2E workflow, including both its baseline and
       // utoopack-powered qiankun applications.
       pnpm('umi-scripts', 'turbo', 'build', '--filter', './examples/max...'),
@@ -222,7 +227,7 @@ export function getSuite(name, platform = process.platform) {
   if (name === 'umi' && platform === 'win32') {
     return {
       ...suite,
-      test: suite.test.slice(0, 3),
+      test: suite.test.slice(0, 4),
       nonEmptyDirectories: ['packages/bundler-utoopack/dist'],
     };
   }

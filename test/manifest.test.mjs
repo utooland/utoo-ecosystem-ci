@@ -13,8 +13,31 @@ test('normalizes package names and local tarballs', () => {
   const tarball = path.join(root, 'pack.tgz');
   fs.writeFileSync(tarball, 'test');
   assert.equal(normalizeDependencySpec('@utoo/pack@latest'), 'latest');
+  assert.equal(normalizeDependencySpec('@utoo/pack-cli@next'), 'next');
   assert.equal(normalizeDependencySpec(tarball), `file:${tarball}`);
 });
+
+for (const packageManager of ['npm', 'pnpm']) {
+  test(`keeps the CLI and its transitive bundler on the candidate in ${packageManager}`, (context) => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'utoo-cli-manifest-'));
+    context.after(() => fs.rmSync(repoDir, { recursive: true, force: true }));
+    const manifest = path.join(repoDir, 'package.json');
+    fs.writeFileSync(manifest, JSON.stringify({ devDependencies: { keep: '1' } }));
+    patchConsumerManifest({
+      repoDir,
+      suite: { packageManager },
+      packSpec: 'file:/candidate/pack.tgz',
+      packSharedSpec: 'file:/candidate/shared.tgz',
+      packCliSpec: 'file:/candidate/cli.tgz',
+    });
+    const pkg = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+    assert.equal(pkg.devDependencies.keep, '1');
+    assert.equal(pkg.devDependencies['@utoo/pack-cli'], 'file:/candidate/cli.tgz');
+    const overrides = packageManager === 'pnpm' ? pkg.pnpm.overrides : pkg.overrides;
+    assert.equal(overrides['@utoo/pack-cli'], 'file:/candidate/cli.tgz');
+    assert.equal(overrides['@utoo/pack'], 'file:/candidate/pack.tgz');
+  });
+}
 
 test('patches pnpm root and direct manifests without dropping existing data', () => {
   const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'utoo-pnpm-'));

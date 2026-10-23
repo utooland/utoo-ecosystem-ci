@@ -19,6 +19,8 @@ export function normalizeDependencySpec(input, cwd = process.cwd()) {
     spec = spec.slice('@utoo/pack@'.length);
   } else if (spec.startsWith('@utoo/pack-shared@')) {
     spec = spec.slice('@utoo/pack-shared@'.length);
+  } else if (spec.startsWith('@utoo/pack-cli@')) {
+    spec = spec.slice('@utoo/pack-cli@'.length);
   }
 
   if (spec.startsWith('file:')) {
@@ -51,28 +53,31 @@ export function patchConsumerManifest({
   suite,
   packSpec,
   packSharedSpec,
+  packCliSpec,
 }) {
   const rootManifest = path.join(repoDir, 'package.json');
   const pkg = readJson(rootManifest);
+  const candidates = {
+    '@utoo/pack': packSpec,
+    '@utoo/pack-shared': packSharedSpec,
+    ...(packCliSpec ? { '@utoo/pack-cli': packCliSpec } : {}),
+  };
 
   pkg.devDependencies = {
     ...pkg.devDependencies,
-    '@utoo/pack': packSpec,
-    '@utoo/pack-shared': packSharedSpec,
+    ...candidates,
   };
 
   if (suite.packageManager === 'pnpm') {
     pkg.pnpm = pkg.pnpm ?? {};
     pkg.pnpm.overrides = {
       ...pkg.pnpm.overrides,
-      '@utoo/pack': packSpec,
-      '@utoo/pack-shared': packSharedSpec,
+      ...candidates,
     };
   } else if (suite.packageManager === 'npm') {
     pkg.overrides = {
       ...pkg.overrides,
-      '@utoo/pack': packSpec,
-      '@utoo/pack-shared': packSharedSpec,
+      ...candidates,
     };
   } else {
     throw new Error(`Unsupported package manager: ${suite.packageManager}`);
