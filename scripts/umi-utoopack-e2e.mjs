@@ -173,13 +173,20 @@ async function assertShutdown({ server, markers, getLog }, signal) {
   const worker = Number(fs.readFileSync(path.join(markers, 'worker'), 'utf8'));
   const innerPort = Number(fs.readFileSync(path.join(markers, 'port'), 'utf8'));
   const expectedSignal = signal === 'SIGINT' ? 'SIGINT' : 'SIGTERM';
-  server.kill(signal); // Only the parent: group termination would hide the regression.
+  // On Windows, libuv's Job Object kills non-detached workers with their parent.
+  // A forced stop cannot guarantee that the worker runs JavaScript cleanup hooks.
+  const requiredCleanupMarkers =
+    process.platform === 'win32' && signal === 'SIGKILL'
+      ? []
+      : ['close', 'onExit', expectedSignal];
+  // Target only the parent PID; let IPC disconnect or the Windows Job stop its worker.
+  server.kill(signal);
   const started = Date.now();
   while (Date.now() - started < 10_000) {
     if (
       !isAlive(worker) &&
       !isAlive(server.pid) &&
-      ['close', 'onExit', expectedSignal].every((name) =>
+      requiredCleanupMarkers.every((name) =>
         fs.existsSync(path.join(markers, name)),
       ) &&
       (await Promise.all([9527, innerPort].map(portIsFree))).every(Boolean)
@@ -192,14 +199,31 @@ async function assertShutdown({ server, markers, getLog }, signal) {
         );
       }
       console.log(
-        `Verified Umi ${signal}: worker exited, async cleanup completed, both ports released.`,
+        `Verified Umi ${signal}: worker exited${
+          requiredCleanupMarkers.length > 0 ? ', async cleanup completed' : ''
+        }, both ports released.`,
       );
       return;
     }
     await sleep(100);
   }
+  const state = {
+    worker: { pid: worker, alive: isAlive(worker) },
+    parent: {
+      pid: server.pid,
+      alive: isAlive(server.pid),
+      exitCode: server.exitCode,
+      signalCode: server.signalCode,
+    },
+    requiredCleanupMarkers,
+    markers: fs.readdirSync(markers),
+    ports: await Promise.all([9527, innerPort].map(async (port) => ({
+      port,
+      free: await portIsFree(port),
+    }))),
+  };
   throw new Error(
-    `Umi ${signal} left a worker, unfinished cleanup, or an occupied port.\n${getLog()}`,
+    `Umi ${signal} left a worker, unfinished cleanup, or an occupied port.\n${JSON.stringify(state, null, 2)}\n${getLog()}`,
   );
 }
 
