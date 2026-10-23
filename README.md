@@ -12,7 +12,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 
 | Suite | Consumer | E2E coverage |
 | --- | --- | --- |
-| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E plus its qiankun slave and utoopack master E2Es |
+| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E, framework routing and CLI fallback regressions, plus its qiankun slave and utoopack master E2Es |
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build and starts its utoopack dev server |
 | `ant-design` | `ant-design/ant-design@7793cab` | Runs the production Dumi site build and the exact utoopack dev startup from `utooland/utoo#3332` |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
@@ -23,6 +23,14 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
 Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The seven Linux suites retain their coverage, including Umi's qiankun E2Es.
+
+The routing regressions run on both Linux and Windows. Umi must retain control of
+its post-bundler middleware and nested routes, including direct navigation and a
+browser refresh when the internal output contains `index.html`. A separate
+fixture starts the actual candidate `up dev` binary: SPA fallback must work by
+default, `--no-history-api-fallback` must restore the missing-route response, and
+missing JS/CSS files must remain errors in both modes. The CLI fixture verifies
+that the CLI resolves the same bundler candidate installed for Umi.
 
 For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
 
@@ -62,10 +70,15 @@ node scripts/prepare-candidate.mjs \
 ut ecosystem -- \
   --suite umi \
   --pack candidate-artifacts/utoo-pack.tgz \
-  --pack-shared candidate-artifacts/utoo-pack-shared.tgz
+  --pack-shared candidate-artifacts/utoo-pack-shared.tgz \
+  --pack-cli candidate-artifacts/utoo-pack-cli.tgz
 ```
 
 Consumer checkouts are disposable and live under `workspace/`. Use `--keep` to reuse an existing checkout, `--ref <branch|tag|commit>` to test a consumer ref, or `--repo <owner/repo>` to test a fork.
+
+The Umi suite also installs `@utoo/pack-cli`. Registry runs default its version or
+tag to `--pack`; local tarball runs require `--pack-cli` explicitly so the CLI
+regression cannot accidentally exercise a published CLI instead of the candidate.
 
 ## GitHub Actions
 
@@ -76,7 +89,7 @@ The **Utoopack ecosystem CI** workflow supports four entry points:
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
 
-In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack` and `@utoo/pack-shared`, and shares those tarballs with the selected consumer jobs.
+In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the workflow checks out `utoo_repository@utoo_ref`, initializes the `next.js` submodule, builds the Linux x64 native package once, packs `@utoo/pack`, `@utoo/pack-shared`, and `@utoo/pack-cli`, and shares those tarballs with the selected consumer jobs.
 
 Source runs selecting Windows also prepare a Windows candidate using Utoo's existing cross-compilation scripts. Linux and Windows tarballs are separate artifacts; the Windows binding is embedded in the CJS and ESM wrappers. npm runs install the published binding normally.
 
