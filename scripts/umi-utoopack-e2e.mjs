@@ -173,13 +173,20 @@ async function assertShutdown({ server, markers, getLog }, signal) {
   const worker = Number(fs.readFileSync(path.join(markers, 'worker'), 'utf8'));
   const innerPort = Number(fs.readFileSync(path.join(markers, 'port'), 'utf8'));
   const expectedSignal = signal === 'SIGINT' ? 'SIGINT' : 'SIGTERM';
-  server.kill(signal); // Only the parent: group termination would hide the regression.
+  // On Windows, libuv's Job Object kills non-detached workers with their parent.
+  // A forced stop cannot guarantee that the worker runs JavaScript cleanup hooks.
+  const requiredCleanupMarkers =
+    process.platform === 'win32' && signal === 'SIGKILL'
+      ? []
+      : ['close', 'onExit', expectedSignal];
+  // Target only the parent PID; let IPC disconnect or the Windows Job stop its worker.
+  server.kill(signal);
   const started = Date.now();
   while (Date.now() - started < 10_000) {
     if (
       !isAlive(worker) &&
       !isAlive(server.pid) &&
-      ['close', 'onExit', expectedSignal].every((name) =>
+      requiredCleanupMarkers.every((name) =>
         fs.existsSync(path.join(markers, name)),
       ) &&
       (await Promise.all([9527, innerPort].map(portIsFree))).every(Boolean)
@@ -192,7 +199,9 @@ async function assertShutdown({ server, markers, getLog }, signal) {
         );
       }
       console.log(
-        `Verified Umi ${signal}: worker exited, async cleanup completed, both ports released.`,
+        `Verified Umi ${signal}: worker exited${
+          requiredCleanupMarkers.length > 0 ? ', async cleanup completed' : ''
+        }, both ports released.`,
       );
       return;
     }
@@ -206,6 +215,7 @@ async function assertShutdown({ server, markers, getLog }, signal) {
       exitCode: server.exitCode,
       signalCode: server.signalCode,
     },
+    requiredCleanupMarkers,
     markers: fs.readdirSync(markers),
     ports: await Promise.all([9527, innerPort].map(async (port) => ({
       port,
