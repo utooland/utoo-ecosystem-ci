@@ -198,8 +198,22 @@ async function assertShutdown({ server, markers, getLog }, signal) {
     }
     await sleep(100);
   }
+  const state = {
+    worker: { pid: worker, alive: isAlive(worker) },
+    parent: {
+      pid: server.pid,
+      alive: isAlive(server.pid),
+      exitCode: server.exitCode,
+      signalCode: server.signalCode,
+    },
+    markers: fs.readdirSync(markers),
+    ports: await Promise.all([9527, innerPort].map(async (port) => ({
+      port,
+      free: await portIsFree(port),
+    }))),
+  };
   throw new Error(
-    `Umi ${signal} left a worker, unfinished cleanup, or an occupied port.\n${getLog()}`,
+    `Umi ${signal} left a worker, unfinished cleanup, or an occupied port.\n${JSON.stringify(state, null, 2)}\n${getLog()}`,
   );
 }
 
