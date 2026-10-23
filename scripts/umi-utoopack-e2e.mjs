@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import net from 'node:net';
+import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { resolveCommand, runCommand } from '../src/process.mjs';
+import { runCommand } from '../src/process.mjs';
 
 const URL = 'http://127.0.0.1:9527/';
 const READY_PATTERN = /utoo pack v.* ready/;
@@ -26,25 +28,28 @@ export function enableUtoopack(configPath) {
   fs.writeFileSync(configPath, updated);
 }
 
-function startServer(repoDir) {
-  const [executable, ...args] = resolveCommand([
-    'corepack',
-    'pnpm',
-    '--dir',
-    'examples/with-use-model',
-    'dev',
-  ]);
-  const server = spawn(executable, args, {
-    cwd: repoDir,
-    shell: false,
-    detached: process.platform !== 'win32',
-    env: {
-      ...process.env,
-      FORCE_UTOOPACK: '1',
-      PORT: '9527',
+function startServer(repoDir, plugin, markers) {
+  // Control the actual parent CLI, rather than a package-manager wrapper.
+  const server = spawn(
+    process.execPath,
+    [path.join(repoDir, 'packages/umi/bin/umi.js'), 'dev'],
+    {
+      cwd: path.join(repoDir, 'examples/with-use-model'),
+      shell: false,
+      detached: process.platform !== 'win32',
+      env: {
+        ...process.env,
+        FORCE_UTOOPACK: '1',
+        PORT: '9527',
+        STRICT_PORT: '9527',
+        UMI_PLUGINS: [process.env.UMI_PLUGINS, plugin]
+          .filter(Boolean)
+          .join(','),
+        UMI_SHUTDOWN_MARKERS: markers,
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  );
 
   let log = '';
   const state = { spawnError: null };
@@ -60,6 +65,7 @@ function startServer(repoDir) {
 
   return {
     server,
+    markers,
     getLog: () => log,
     getSpawnError: () => state.spawnError,
   };
@@ -80,6 +86,7 @@ async function waitForServer({ server, getLog, getSpawnError }) {
     try {
       const response = await fetch(URL);
       httpReady = response.ok;
+      await response.body?.cancel();
     } catch {
       httpReady = false;
     }
@@ -143,37 +150,143 @@ async function assertBrowserRuntime(repoDir) {
   }
 }
 
-async function stopServer(server) {
-  if (!server.pid || server.exitCode !== null || server.signalCode !== null) return;
+function isAlive(pid) {
+  if (!pid) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error.code === 'ESRCH') return false;
+    throw error;
+  }
+}
+
+function portIsFree(port) {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.once('error', () => resolve(false));
+    probe.listen(port, '127.0.0.1', () => probe.close(() => resolve(true)));
+  });
+}
+
+async function assertShutdown({ server, markers, getLog }, signal) {
+  const worker = Number(fs.readFileSync(path.join(markers, 'worker'), 'utf8'));
+  const innerPort = Number(fs.readFileSync(path.join(markers, 'port'), 'utf8'));
+  const expectedSignal = signal === 'SIGINT' ? 'SIGINT' : 'SIGTERM';
+  server.kill(signal); // Only the parent: group termination would hide the regression.
+  const started = Date.now();
+  while (Date.now() - started < 10_000) {
+    if (
+      !isAlive(worker) &&
+      !isAlive(server.pid) &&
+      ['close', 'onExit', expectedSignal].every((name) =>
+        fs.existsSync(path.join(markers, name)),
+      ) &&
+      (await Promise.all([9527, innerPort].map(portIsFree))).every(Boolean)
+    ) {
+      if (signal === 'SIGINT' && server.exitCode !== 0) {
+        throw new Error(
+          `Umi graceful stop failed with exit code ${
+            server.exitCode
+          }.\n${getLog()}`,
+        );
+      }
+      console.log(
+        `Verified Umi ${signal}: worker exited, async cleanup completed, both ports released.`,
+      );
+      return;
+    }
+    await sleep(100);
+  }
+  throw new Error(
+    `Umi ${signal} left a worker, unfinished cleanup, or an occupied port.\n${getLog()}`,
+  );
+}
+
+async function stopServer({ server, markers }) {
+  const workerPath = path.join(markers, 'worker');
+  const worker = fs.existsSync(workerPath)
+    ? Number(fs.readFileSync(workerPath, 'utf8'))
+    : undefined;
+  if (!server.pid) return;
 
   if (process.platform === 'win32') {
-    try {
-      await runCommand(['taskkill.exe', '/PID', String(server.pid), '/T', '/F'], {
-        capture: true,
-      });
-    } catch (error) {
-      if (server.exitCode === null && server.signalCode === null) throw error;
+    for (const pid of [worker, server.pid]) {
+      if (!isAlive(pid)) continue;
+      try {
+        await runCommand(['taskkill.exe', '/PID', String(pid), '/T', '/F'], {
+          capture: true,
+        });
+      } catch (error) {
+        if (isAlive(pid)) throw error;
+      }
     }
     return;
   }
 
-  const exited = new Promise((resolve) => server.once('exit', resolve));
-  process.kill(-server.pid, 'SIGTERM');
-  await Promise.race([exited, sleep(5_000)]);
-  if (server.exitCode === null && server.signalCode === null) {
+  // This is failure cleanup, after all lifecycle assertions have run.
+  try {
     process.kill(-server.pid, 'SIGKILL');
+  } catch (error) {
+    if (error.code !== 'ESRCH') throw error;
   }
 }
 
 export async function main(repoDir = process.cwd()) {
-  enableUtoopack(path.join(repoDir, 'examples/with-use-model/.umirc.ts'));
-  const runningServer = startServer(repoDir);
-
+  repoDir = path.resolve(repoDir);
+  const configPath = path.join(repoDir, 'examples/with-use-model/.umirc.ts');
+  const config = fs.readFileSync(configPath, 'utf8');
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'umi-shutdown-'));
+  const plugin = path.join(directory, 'plugin.cjs');
+  fs.writeFileSync(
+    plugin,
+    `
+const fs = require('node:fs');
+const path = require('node:path');
+const { createRequire } = require('node:module');
+const mark = (name, value = 'done') => fs.writeFileSync(path.join(process.env.UMI_SHUTDOWN_MARKERS, name), String(value));
+const delay = () => new Promise(resolve => setTimeout(resolve, 200));
+module.exports = api => {
+  mark('worker', process.pid);
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.once(signal, async () => { await delay(); mark(signal); });
+  }
+  api.register({ key: 'onExit', async fn() { await delay(); mark('onExit'); } });
+  const pack = createRequire(${JSON.stringify(
+    path.join(repoDir, 'packages/bundler-utoopack/package.json'),
+  )})('@utoo/pack');
+  const serve = pack.serve;
+  Object.defineProperty(pack, 'serve', { value: async (config, cwd, root, options) => {
+    const handle = await serve(config, cwd, root, {
+      ...options,
+      onReady(context) { mark('port', context.port); options.onReady?.(context); },
+    });
+    const close = handle.close.bind(handle);
+    handle.close = async () => { await close(); await delay(); mark('close'); };
+    return handle;
+  }});
+};
+`,
+  );
   try {
-    await waitForServer(runningServer);
-    await assertBrowserRuntime(repoDir);
+    enableUtoopack(configPath);
+    const signals =
+      process.platform === 'win32' ? ['SIGKILL'] : ['SIGINT', 'SIGKILL'];
+    for (const [index, signal] of signals.entries()) {
+      const markers = path.join(directory, signal);
+      fs.mkdirSync(markers);
+      const runningServer = startServer(repoDir, plugin, markers);
+      try {
+        await waitForServer(runningServer);
+        if (index === 0) await assertBrowserRuntime(repoDir);
+        await assertShutdown(runningServer, signal);
+      } finally {
+        await stopServer(runningServer);
+      }
+    }
   } finally {
-    await stopServer(runningServer.server);
+    fs.writeFileSync(configPath, config);
+    fs.rmSync(directory, { recursive: true, force: true });
   }
 }
 

@@ -12,7 +12,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 
 | Suite | Consumer | E2E coverage |
 | --- | --- | --- |
-| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E plus its qiankun slave and utoopack master E2Es |
+| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E, dev shutdown regressions, and its qiankun slave and utoopack master E2Es |
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build and starts its utoopack dev server |
 | `ant-design` | `ant-design/ant-design@7793cab` | Runs the production Dumi site build and the exact utoopack dev startup from `utooland/utoo#3332` |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
@@ -23,6 +23,8 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
 Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The seven Linux suites retain their coverage, including Umi's qiankun E2Es.
+
+The Umi dev E2E kills only the parent CLI to verify that its worker exits after IPC disconnect. It checks the worker PID, both the Umi HTTP port and utoopack's actual server port, asynchronous `onExit` and existing signal listeners, and completion of the real utoopack `close()`. Linux also checks graceful parent `SIGINT` shutdown. Windows checks forced parent termination and IPC disconnect; it does not simulate console Ctrl+C. Temporary plugins and configuration changes are restored after the run.
 
 For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
 
