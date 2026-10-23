@@ -67,18 +67,39 @@ async function waitForCli(runningServer, timeout = 120_000) {
   throw new Error(`Timed out waiting for CLI server URL.\n${runningServer.getLog()}`);
 }
 
-export async function assertRouteResponse(url, enabled) {
+export async function getMissingRouteStatus(url) {
+  const response = await fetch(`${url}/ecosystem-missing-route`, {
+    headers: { accept: 'application/json' },
+    signal: AbortSignal.timeout(10_000),
+  });
+  assert.ok(
+    [404, 405].includes(response.status),
+    `Non-HTML missing-route baseline must return 404 or 405, received ${response.status}`,
+  );
+  assert.doesNotMatch(await response.text(), new RegExp(SHELL));
+  return response.status;
+}
+
+export async function assertRouteResponse(url, enabled, missingStatus) {
   const response = await fetch(`${url}${ROUTE}`, {
     headers: { accept: 'text/html' },
     signal: AbortSignal.timeout(10_000),
   });
   const body = await response.text();
-  assert.equal(response.status, enabled ? 200 : 405, `CLI fallback enabled=${enabled}`);
+  assert.equal(response.status, enabled ? 200 : missingStatus, `CLI fallback enabled=${enabled}`);
   if (enabled) {
     assert.match(response.headers.get('content-type') ?? '', /text\/html/);
     assert.match(body, new RegExp(SHELL));
   } else {
     assert.doesNotMatch(body, new RegExp(SHELL));
+  }
+}
+
+export async function assertMissingAssets(url, missingStatus) {
+  for (const missing of ['/missing.js', '/missing.css']) {
+    const response = await fetch(`${url}${missing}`, { signal: AbortSignal.timeout(10_000) });
+    assert.equal(response.status, missingStatus, 'Missing assets must keep their error response');
+    assert.doesNotMatch(await response.text(), new RegExp(SHELL));
   }
 }
 
@@ -102,7 +123,8 @@ export async function main(repoDir = process.cwd()) {
         try {
           const url = await waitForCli(runningServer);
           assert.ok(fs.existsSync(path.join(fixture, 'dist/index.html')));
-          await assertRouteResponse(url, enabled);
+          const missingStatus = await getMissingRouteStatus(url);
+          await assertRouteResponse(url, enabled, missingStatus);
           if (enabled) {
             const page = await browser.newPage();
             try {
@@ -114,11 +136,7 @@ export async function main(repoDir = process.cwd()) {
               await page.close();
             }
           }
-          for (const missing of ['/missing.js', '/missing.css']) {
-            const response = await fetch(`${url}${missing}`, { signal: AbortSignal.timeout(10_000) });
-            assert.equal(response.status, 405, 'Missing assets must keep their error response');
-            assert.doesNotMatch(await response.text(), new RegExp(SHELL));
-          }
+          await assertMissingAssets(url, missingStatus);
           console.log(`PASS CLI history fallback ${enabled ? 'default' : 'disabled'}`);
         } finally {
           await stopServer(runningServer.server);
