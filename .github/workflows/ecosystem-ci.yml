@@ -395,15 +395,18 @@ jobs:
 
           pack_spec="$PACK_SPEC"
           pack_shared_spec="$PACK_SPEC"
+          pack_cli_spec="$PACK_SPEC"
           if [[ "$CANDIDATE_MODE" == source ]]; then
             pack_spec="$GITHUB_WORKSPACE/candidate-artifacts/utoo-pack.tgz"
             pack_shared_spec="$GITHUB_WORKSPACE/candidate-artifacts/utoo-pack-shared.tgz"
+            pack_cli_spec="$GITHUB_WORKSPACE/candidate-artifacts/utoo-pack-cli.tgz"
           fi
 
           args=(
             --suite "$SUITE"
             --pack "$pack_spec"
             --pack-shared "$pack_shared_spec"
+            --pack-cli "$pack_cli_spec"
             --workspace "$GITHUB_WORKSPACE/workspace"
           )
           if [[ -n "$CONSUMER_REF" ]]; then
