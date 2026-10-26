@@ -46,7 +46,7 @@ export function resolveCli(repoDir) {
   return path.resolve(path.dirname(manifest), bin);
 }
 
-async function waitForCli(runningServer, timeout = 120_000) {
+export async function waitForCli(runningServer, timeout = 120_000) {
   const started = Date.now();
   while (Date.now() - started < timeout) {
     const { server, getLog, getSpawnError } = runningServer;
@@ -57,10 +57,15 @@ async function waitForCli(runningServer, timeout = 120_000) {
     const log = getLog().replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '');
     const url = log.match(/Local:\s+(http:\/\/localhost:\d+)/)?.[1];
     if (url) {
-      const response = await fetch(`${url}/`, { signal: AbortSignal.timeout(5_000) });
-      assert.equal(response.status, 200, 'CLI must serve the existing index.html');
-      assert.match(await response.text(), new RegExp(SHELL));
-      return url;
+      // The banner can appear before the server accepts connections.
+      const response = await fetch(`${url}/`, {
+        signal: AbortSignal.timeout(5_000),
+      }).catch(() => undefined);
+      if (response?.status === 200) {
+        assert.match(await response.text(), new RegExp(SHELL));
+        return url;
+      }
+      await response?.body?.cancel();
     }
     await sleep(100);
   }
