@@ -12,7 +12,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 
 | Suite | Consumer | E2E coverage |
 | --- | --- | --- |
-| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E, framework routing and CLI fallback regressions, plus its qiankun slave and utoopack master E2Es |
+| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E, framework routing, CLI fallback and dev shutdown regressions, plus its qiankun slave and utoopack master E2Es |
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build and starts its utoopack dev server |
 | `ant-design` | `ant-design/ant-design@7793cab` | Runs the production Dumi site build and the exact utoopack dev startup from `utooland/utoo#3332` |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
@@ -23,6 +23,8 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
 Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The seven Linux suites retain their coverage, including Umi's qiankun E2Es.
+
+The Umi dev E2E targets only the parent CLI PID for termination and checks that both parent and worker exit and that the Umi HTTP port and utoopack's actual server port are reusable. Linux checks graceful parent `SIGINT` shutdown and IPC disconnect after parent `SIGKILL`, including asynchronous `onExit`, existing signal listeners, and completion of the real utoopack `close()`. On Windows, libuv's Job Object can forcibly terminate the non-detached worker when its parent is killed, so the `SIGKILL` case checks process exit and port reuse without requiring JavaScript cleanup hooks. It does not verify Windows graceful shutdown or simulate console Ctrl+C. Temporary plugins and configuration changes are restored after the run.
 
 The routing regressions run on both Linux and Windows. Umi must retain control of
 its post-bundler middleware and nested routes, including direct navigation and a
