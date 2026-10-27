@@ -24,6 +24,8 @@ Every suite verifies that its expected output directory exists and is non-empty.
 
 Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The seven Linux suites retain their coverage, including Umi's qiankun E2Es.
 
+Linux builds and browser suites use Ubuntu 24.04 so consumer Playwright versions run on a supported OS when `ubuntu-latest` advances.
+
 The Umi dev E2E targets only the parent CLI PID for termination and checks that both parent and worker exit and that the Umi HTTP port and utoopack's actual server port are reusable. Linux checks graceful parent `SIGINT` shutdown and IPC disconnect after parent `SIGKILL`, including asynchronous `onExit`, existing signal listeners, and completion of the real utoopack `close()`. On Windows, libuv's Job Object can forcibly terminate the non-detached worker when its parent is killed, so the `SIGKILL` case checks process exit and port reuse without requiring JavaScript cleanup hooks. It does not verify Windows graceful shutdown or simulate console Ctrl+C. Temporary plugins and configuration changes are restored after the run.
 
 The routing regressions run on both Linux and Windows. Umi must retain control of

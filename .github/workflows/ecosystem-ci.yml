@@ -110,7 +110,7 @@ env:
 jobs:
   config:
     name: Resolve configuration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       candidate_mode: ${{ steps.resolve.outputs.candidate_mode }}
       pack_spec: ${{ steps.resolve.outputs.pack_spec }}
@@ -165,7 +165,7 @@ jobs:
           fi
           matrix=$(node -e '
             const suites = JSON.parse(process.argv[1]);
-            const jobs = suites.map(suite => ({ suite, os: "ubuntu-latest" }));
+            const jobs = suites.map(suite => ({ suite, os: "ubuntu-24.04" }));
             if (suites.includes("umi")) jobs.push({ suite: "umi", os: "windows-2022" });
             console.log(JSON.stringify(jobs));
           ' "$matrix")
@@ -197,7 +197,7 @@ jobs:
     name: Build source candidate (${{ matrix.platform }})
     needs: config
     if: needs.config.outputs.candidate_mode == 'source'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     strategy:
       fail-fast: false
@@ -307,7 +307,7 @@ jobs:
   harness_check:
     name: Check ecosystem harness
     needs: config
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout ecosystem harness
@@ -418,7 +418,7 @@ jobs:
     name: Utoopack ecosystem CI success
     needs: [config, prepare_candidate, harness_check, ecosystem]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check required jobs
         shell: bash
