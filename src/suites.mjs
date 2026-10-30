@@ -17,6 +17,9 @@ const evjsUtoopackDevSmoke = fileURLToPath(
 const evjsSharedRuntime = fileURLToPath(
   new URL('../scripts/evjs-shared-runtime.mjs', import.meta.url),
 );
+const prepareEvjsH5 = fileURLToPath(
+  new URL('../scripts/prepare-evjs-h5.mjs', import.meta.url),
+);
 const utoopackDevServerSmoke = fileURLToPath(
   new URL('../scripts/utoopack-dev-server-smoke.mjs', import.meta.url),
 );
@@ -212,6 +215,24 @@ export const SUITES = Object.freeze({
       ['node', evjsSharedRuntime, 'verify'],
     ],
     nonEmptyDirectories: ['examples/mpa/dist/client'],
+  },
+  'evjs-h5': {
+    ...evjsSuite,
+    title: 'EVJS H5',
+    // Register the fixture workspace before npm resolves its marked dependency.
+    install: [['node', prepareEvjsH5], ...evjsSuite.install],
+    test: [
+      evjsSuite.test[0],
+      [
+        'npm',
+        'run',
+        'test:e2e',
+        '--',
+        '--project=utoopack',
+        'e2e/cases/ecosystem-h5.ts',
+      ],
+    ],
+    nonEmptyDirectories: ['examples/ecosystem-h5/dist/client'],
   },
 });
 

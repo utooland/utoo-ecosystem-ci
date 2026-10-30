@@ -24,7 +24,7 @@ on:
         type: string
         default: next
       suite:
-        description: Suite name or all (including shared runtime)
+        description: Suite name or all (including EVJS shared runtime and H5)
         required: false
         type: string
         default: all
@@ -81,6 +81,7 @@ on:
           - dumi
           - evjs
           - evjs-shared-runtime
+          - evjs-h5
         default: all
       consumer_ref:
         description: Optional ref for the selected consumer
@@ -155,8 +156,8 @@ jobs:
 
           case "$candidate_mode" in npm|source) ;; *) echo "Invalid candidate_mode: $candidate_mode" >&2; exit 2 ;; esac
           case "$suite" in
-            all) matrix='["umi","ant-design-pro","ant-design","father","dumi","evjs","evjs-shared-runtime"]' ;;
-            umi|ant-design-pro|ant-design|father|dumi|evjs|evjs-shared-runtime) matrix="[\"${suite}\"]" ;;
+            all) matrix='["umi","ant-design-pro","ant-design","father","dumi","evjs","evjs-shared-runtime","evjs-h5"]' ;;
+            umi|ant-design-pro|ant-design|father|dumi|evjs|evjs-shared-runtime|evjs-h5) matrix="[\"${suite}\"]" ;;
             *) echo "Invalid suite: $suite" >&2; exit 2 ;;
           esac
           candidate_platforms='["linux"]'

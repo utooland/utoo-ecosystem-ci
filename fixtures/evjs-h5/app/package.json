@@ -1,0 +1,19 @@
+{
+  "name": "example-ecosystem-h5",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "ev dev",
+    "build": "ev build"
+  },
+  "dependencies": {
+    "@evjs/ev": "*",
+    "marked": "17.0.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@evjs/cli": "*"
+  }
+}

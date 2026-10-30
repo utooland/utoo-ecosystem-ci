@@ -26,6 +26,7 @@ const allSuites = [
   'dumi',
   'evjs',
   'evjs-shared-runtime',
+  'evjs-h5',
 ];
 for (const suite of allSuites) {
   assert.match(workflow, new RegExp(`- ${suite.replace('-', '\\-')}(?:\\n|$)`));
