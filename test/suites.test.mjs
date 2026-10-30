@@ -39,6 +39,7 @@ test('defines the requested ecosystem suites', () => {
     'dumi',
     'evjs',
     'evjs-shared-runtime',
+    'evjs-h5',
   ]);
 });
 
@@ -128,6 +129,35 @@ test('EVJS shared runtime runs the MPA browser test and checks emitted assets', 
   assert.equal(path.basename(suite.test[3][1]), 'evjs-shared-runtime.mjs');
   assert.equal(suite.test[3][2], 'verify');
   assert.deepEqual(suite.nonEmptyDirectories, ['examples/mpa/dist/client']);
+});
+
+test('EVJS H5 prepares its workspace before installation and tests the candidate', () => {
+  const suite = SUITES['evjs-h5'];
+  assert.equal(suite.repository, SUITES.evjs.repository);
+  assert.equal(suite.ref, SUITES.evjs.ref);
+  assert.equal(suite.install[0][0], 'node');
+  assert.equal(path.basename(suite.install[0][1]), 'prepare-evjs-h5.mjs');
+  assert.deepEqual(suite.install.slice(1), SUITES.evjs.install);
+  assert.deepEqual(suite.test, [
+    SUITES.evjs.test[0],
+    [
+      'npm',
+      'run',
+      'test:e2e',
+      '--',
+      '--project=utoopack',
+      'e2e/cases/ecosystem-h5.ts',
+    ],
+  ]);
+  assert.equal(suite.directManifest, SUITES.evjs.directManifest);
+  assert.equal(suite.candidateResolveFrom, SUITES.evjs.candidateResolveFrom);
+  assert.deepEqual(
+    suite.staleCandidateDirectories,
+    SUITES.evjs.staleCandidateDirectories,
+  );
+  assert.deepEqual(suite.nonEmptyDirectories, [
+    'examples/ecosystem-h5/dist/client',
+  ]);
 });
 
 test('Father validates only its utoopack UMD example', () => {

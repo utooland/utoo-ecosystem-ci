@@ -19,10 +19,11 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 | `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds and starts a minimal site based on Dumi's official template with utoopack |
 | `evjs` | `afx-team/evjs@main` | Builds EVJS packages, starts its basic app with `ev dev`, and runs its `bundler-utoopack` Playwright project |
 | `evjs-shared-runtime` | `afx-team/evjs@main` | Enables `sharedRuntime` in the disposable two-page MPA example, runs its Chromium E2E, and verifies both pages load the same runtime asset last |
+| `evjs-h5` | `afx-team/evjs@main` | Builds a public EVJS MPA fixture targeting Android 5 / iOS 8, then checks real `marked` rendering and named RegExp behavior in Chromium |
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
-Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The seven Linux suites retain their coverage, including Umi's qiankun E2Es.
+Selecting `umi` or `all` also runs Umi's dev/browser E2E on Windows x64 through the same CI matrix and success check. The eight Linux suites retain their coverage, including Umi's qiankun E2Es.
 
 Linux builds and browser suites use Ubuntu 24.04 so consumer Playwright versions run on a supported OS when `ubuntu-latest` advances.
 
@@ -37,6 +38,8 @@ missing JS/CSS files must remain errors in both modes. The CLI fixture verifies
 that the CLI resolves the same bundler candidate installed for Umi.
 
 For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
+
+The `evjs-h5` suite uses public EVJS MPA pages with the H5 compilation target `android 5, ios 8`. It copies its fixture workspace before dependency installation so the application imports the real `marked` package. Its production build exercises SWC's RegExp lowering and runtime helper resolution; Chromium then checks Markdown rendering, named groups, backreferences, and replacements. The test also checks the underlying RegExp source to ensure native Chromium support cannot hide a missing transform. A separate assertion resolves `_wrap_reg_exp` from the candidate Pack's dependency context, preventing a newer helpers package hoisted by other EVJS tools from masking an incompatible candidate. Android 5 / iOS 8 specify the compilation target; the browser assertions run in Chromium.
 
 ## Run locally
 
@@ -56,6 +59,7 @@ ut ecosystem -- --suite father --pack latest
 ut ecosystem -- --suite ant-design-pro --pack 1.5.3
 ut ecosystem -- --suite ant-design --pack latest
 ut ecosystem -- --suite evjs --pack latest
+ut ecosystem -- --suite evjs-h5 --pack latest
 
 # Run the shared runtime regression alone against a candidate containing the feature
 ut ecosystem -- --suite evjs-shared-runtime --pack /path/to/utoo-pack.tgz --pack-shared /path/to/utoo-pack-shared.tgz
@@ -88,7 +92,7 @@ regression cannot accidentally exercise a published CLI instead of the candidate
 
 The **Utoopack ecosystem CI** workflow supports four entry points:
 
-- Daily schedule: the seven suites in `all` against the npm `latest` tag.
+- Daily schedule: the eight suites in `all` against the npm `latest` tag.
 - Manual run: choose npm/source mode, an individual suite or `all`, and optionally a harness branch to validate.
 - `repository_dispatch`: event type `utoopack-ecosystem-ci` with the same values in `client_payload`.
 - Reusable workflow: call it directly from the utoo repository so the result appears on the originating PR or commit.
@@ -97,7 +101,7 @@ In `npm` mode, `pack_spec` is an npm version or dist-tag. In `source` mode, the 
 
 Source runs selecting Windows also prepare a Windows candidate using Utoo's existing cross-compilation scripts. Linux and Windows tarballs are separate artifacts; the Windows binding is embedded in the CJS and ESM wrappers. npm runs install the published binding normally.
 
-The workflow's `all` selector runs all seven suites, including `evjs-shared-runtime`, on the daily schedule and for Utoopack releases. It is a workflow input, not a name accepted by the local `ut ecosystem -- --suite` CLI. To run only the shared runtime check, select `evjs-shared-runtime` (or use `source` mode with a Utoo ref containing the feature before its npm release). The npm `latest` package must contain `sharedRuntime` for the scheduled `all` run to pass.
+The workflow's `all` selector runs all eight suites, including `evjs-shared-runtime` and `evjs-h5`, on the daily schedule and for Utoopack releases. It is a workflow input, not a name accepted by the local `ut ecosystem -- --suite` CLI. Select either suite individually to run its regression alone, or use `source` mode to test a Utoo ref before its npm release. The candidate must support `sharedRuntime` and include compatible SWC runtime helpers for both checks to pass.
 
 ### Call from the utoo repository
 
@@ -126,7 +130,7 @@ jobs:
       harness_ref: main
 ```
 
-For a published Utoopack release, set `candidate_mode: npm`, `pack_spec` to the newly published version, and `suite: all` in the reusable workflow call. The harness ref must contain the `evjs-shared-runtime` suite.
+For a published Utoopack release, set `candidate_mode: npm`, `pack_spec` to the newly published version, and `suite: all` in the reusable workflow call. The harness ref must contain the `evjs-shared-runtime` and `evjs-h5` suites.
 
 No secrets are required for public repositories. GitHub-hosted runners need enough time and disk for the one-time Rust/NAPI source build; the source preparation job has a three-hour timeout and frees unused runner images first.
 
