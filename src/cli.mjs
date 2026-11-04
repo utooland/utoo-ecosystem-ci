@@ -165,6 +165,14 @@ export async function run(options) {
   if (!options.suite) throw new Error('Missing required --suite');
   if (!options.pack) throw new Error('Missing required --pack');
 
+  if (process.platform === 'win32' && options.suite === 'umi' && !options.dryRun) {
+    try {
+      await import('../scripts/diagnose-native-binding.mjs');
+    } catch (error) {
+      console.error('[native-diagnostic] unexpected failure; continuing consumer suite', error);
+    }
+  }
+
   const suite = getSuite(options.suite);
   const repository = options.repo ?? suite.repository;
   const ref = options.ref ?? suite.ref;
