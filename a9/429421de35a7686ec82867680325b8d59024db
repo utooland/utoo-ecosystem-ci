@@ -1,0 +1,21 @@
+scripts/diagnose-native-binding.mjs
+  s_a09ed228621c85::t_de5d3efda263cd 1-69
+src/cli.mjs
+  s_a09ed228621c85::t_86eba03b9845ae 168-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a9429421de35a7686ec82867680325b8d59024db",
+  "prompts": {},
+  "sessions": {
+    "s_a09ed228621c85": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a026-acf7-7392-a873-6b4a84dcfce7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
