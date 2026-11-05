@@ -1,0 +1,59 @@
+scripts/umi-contenthash-hmr.mjs
+  s_b72af6d0954c28::t_96c19dab600d3b 27-28,30-33,36-39,46-51,56-73,76-77,111-115,146-149,189-195,209-211,213-216,223-224,228-232,249-251,261-264,276-279,287-292,303-307,309-313,315-322,325-329,334-336,338-349,353-355,357-359,383-385,391,393-396,431-433,445-448,452-466,470-472,478-482,484-486,494-498,521-527,551-554
+  s_b72af6d0954c28::t_4fe7df9cb5201c 196-203,222,227
+  s_b72af6d0954c28::t_7af14889b828c9 130-138,164-165,169-185,266-268,360,376,382,387,392,398-399,430
+  s_b72af6d0954c28::t_93088d777ed04b 159-163,166-168,281-285,361-375,377-381,400-429,439-443
+  s_b72af6d0954c28::t_26d13c0fbd2ad1 509-511
+  s_b72af6d0954c28::t_231febfdddfdbf 1-26,29,34-35,40-45,52-55,74-75,78-110,116-129,139-145,150-158,186-188,204-208,212,217-221,225-226,233-248,252-260,265,269-275,280,286,293-302,308,314,323-324,330-333,337,350-352,356,386,388-390,397,434-438,444,449-451,467-469,473-477,483,487-493,499-508,512-520,528-550,555-556
+test/suites.test.mjs
+  s_b72af6d0954c28::t_99a62481a24303 8,17-19,26,29,31-33
+test/umi-contenthash-hmr.test.mjs
+  s_b72af6d0954c28::t_3f7e00eeed6315 1-67
+README.md
+  s_b72af6d0954c28::t_2989a65a190cfd 41-42
+  s_b26407b55e13f8::t_08e501d2ac9fe1 46
+  s_b72af6d0954c28::t_99a62481a24303 15,40,43-45
+fixtures/umi-contenthash-hmr/src/components/Dynamic.tsx
+  s_b72af6d0954c28::t_96c19dab600d3b 8-11
+  s_b72af6d0954c28::t_00bab4f4088dee 1-7,12-16
+fixtures/umi-contenthash-hmr/src/pages/index.tsx
+  s_b72af6d0954c28::t_96c19dab600d3b 18-26
+  s_b72af6d0954c28::t_26d13c0fbd2ad1 1
+  s_b72af6d0954c28::t_00bab4f4088dee 2-17,27-29
+fixtures/umi-contenthash-hmr/.umirc.ts
+  s_b72af6d0954c28::t_00bab4f4088dee 1-11
+fixtures/umi-contenthash-hmr/src/business.ts
+  s_b72af6d0954c28::t_00bab4f4088dee 1
+fixtures/umi-contenthash-hmr/src/pages/index.css
+  s_b72af6d0954c28::t_96c19dab600d3b 1-3
+fixtures/umi-contenthash-hmr/src/app.ts
+  s_b72af6d0954c28::t_00bab4f4088dee 1-3
+src/suites.mjs
+  s_b72af6d0954c28::t_99a62481a24303 8-10,30-50,90,260
+scripts/utoopack-dev-server-smoke.mjs
+  s_b72af6d0954c28::t_99a62481a24303 73,80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f4bf158c73d6f38d77de2bfe1501c6f3b21e6d22",
+  "prompts": {},
+  "sessions": {
+    "s_b26407b55e13f8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a997-916c-7113-90ee-223b58ce83a5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zoomdong <zoomdong@U-0K627Y2C-2335.local>"
+    },
+    "s_b72af6d0954c28": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a6a2-eabb-76f1-a003-90613806e942",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zoomdong <zoomdong@U-0K627Y2C-2335.local>"
+    }
+  }
+}
