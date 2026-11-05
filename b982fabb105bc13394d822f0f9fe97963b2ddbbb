@@ -1,0 +1,21 @@
+.github/workflows/ecosystem-ci.yml
+  s_a09ed228621c85::t_de5d3efda263cd 387-391
+scripts/diagnose-native-binding.mjs
+  s_a09ed228621c85::t_de5d3efda263cd 1-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b982fabb105bc13394d822f0f9fe97963b2ddbbb",
+  "prompts": {},
+  "sessions": {
+    "s_a09ed228621c85": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a026-acf7-7392-a873-6b4a84dcfce7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zoomdong <zoomdong@U-0K627Y2C-2335.local>"
+    }
+  }
+}
