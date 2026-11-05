@@ -5,6 +5,9 @@ const ut = (...args) => ['ut', ...args];
 const umiUtoopackE2E = fileURLToPath(
   new URL('../scripts/umi-utoopack-e2e.mjs', import.meta.url),
 );
+const umiContenthashHmr = fileURLToPath(
+  new URL('../scripts/umi-contenthash-hmr.mjs', import.meta.url),
+);
 const cliHistoryFallback = fileURLToPath(
   new URL('../scripts/cli-history-fallback.mjs', import.meta.url),
 );
@@ -23,6 +26,27 @@ const prepareEvjsH5 = fileURLToPath(
 const utoopackDevServerSmoke = fileURLToPath(
   new URL('../scripts/utoopack-dev-server-smoke.mjs', import.meta.url),
 );
+
+// These dev/browser regressions run on both Linux and Windows. Keep the
+// platform-specific qiankun builds separate so new browser cases cannot be
+// dropped by an outdated slice boundary in getSuite().
+const umiDevTests = [
+  pnpm(
+    'umi-scripts',
+    'turbo',
+    'build',
+    '--filter',
+    './packages/umi/...',
+    '--filter',
+    './packages/plugins/...',
+    '--filter',
+    './packages/bundler-utoopack/...',
+  ),
+  pnpm('exec', 'playwright', 'install', 'chromium'),
+  ['node', umiUtoopackE2E],
+  ['node', umiContenthashHmr],
+  ['node', cliHistoryFallback],
+];
 
 const evjsSuite = {
   title: 'EVJS',
@@ -63,22 +87,7 @@ export const SUITES = Object.freeze({
     requiresPackCli: true,
     install: [pnpm('install', '--no-frozen-lockfile')],
     test: [
-      // Mirror Umi's native utoopack E2E workflow: build the local framework
-      // packages, launch with-use-model under utoopack, then assert its runtime.
-      pnpm(
-        'umi-scripts',
-        'turbo',
-        'build',
-        '--filter',
-        './packages/umi/...',
-        '--filter',
-        './packages/plugins/...',
-        '--filter',
-        './packages/bundler-utoopack/...',
-      ),
-      pnpm('exec', 'playwright', 'install', 'chromium'),
-      ['node', umiUtoopackE2E],
-      ['node', cliHistoryFallback],
+      ...umiDevTests,
       // Mirror Umi's qiankun E2E workflow, including both its baseline and
       // utoopack-powered qiankun applications.
       pnpm('umi-scripts', 'turbo', 'build', '--filter', './examples/max...'),
@@ -248,7 +257,7 @@ export function getSuite(name, platform = process.platform) {
   if (name === 'umi' && platform === 'win32') {
     return {
       ...suite,
-      test: suite.test.slice(0, 4),
+      test: [...umiDevTests],
       nonEmptyDirectories: ['packages/bundler-utoopack/dist'],
     };
   }

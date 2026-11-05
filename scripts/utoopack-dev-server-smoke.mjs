@@ -70,13 +70,14 @@ async function fetchWithTimeout(fetchImpl, url, timeout) {
   }
 }
 
-export function startServer(repoDir, { cwd, command }) {
+export function startServer(repoDir, { cwd, command, env = {} }) {
   const [executable, ...args] = command;
   const server = spawn(executable, args, {
     cwd: path.resolve(repoDir, cwd),
     detached: process.platform !== 'win32',
     env: {
       ...process.env,
+      ...env,
       FORCE_COLOR: '0',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
