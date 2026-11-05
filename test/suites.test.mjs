@@ -5,7 +5,7 @@ import { getSuite, SUITE_NAMES, SUITES } from '../src/suites.mjs';
 
 const commandOf = (step) => (Array.isArray(step) ? step : step.command);
 
-test('Umi runs its native utoopack and qiankun E2E coverage', () => {
+test('Umi runs its native utoopack, contenthash HMR and qiankun E2E coverage', () => {
   const commands = SUITES.umi.test.map((command) => command.join(' '));
   assert.equal(
     commands[0],
@@ -14,20 +14,23 @@ test('Umi runs its native utoopack and qiankun E2E coverage', () => {
   assert.equal(commands[1], 'corepack pnpm exec playwright install chromium');
   assert.equal(path.basename(SUITES.umi.test[2][1]), 'umi-utoopack-e2e.mjs');
   assert.equal(SUITES.umi.requiresPackCli, true);
-  assert.equal(path.basename(SUITES.umi.test[3][1]), 'cli-history-fallback.mjs');
-  assert.deepEqual(commands.slice(4), [
+  assert.equal(path.basename(SUITES.umi.test[3][1]), 'umi-contenthash-hmr.mjs');
+  assert.equal(path.basename(SUITES.umi.test[4][1]), 'cli-history-fallback.mjs');
+  assert.deepEqual(commands.slice(5), [
     'corepack pnpm umi-scripts turbo build --filter ./examples/max...',
     'corepack pnpm --dir examples/qiankun-slave e2e:ci',
     'corepack pnpm --dir examples/with-utoopack-qiankun-master e2e:ci',
   ]);
 });
 
-test('Windows Umi includes both routing regressions before the qiankun suites', () => {
+test('Windows Umi includes contenthash HMR and both routing regressions', () => {
   const suite = getSuite('umi', 'win32');
   assert.equal(suite.requiresPackCli, true);
-  assert.equal(suite.test.length, 4);
+  assert.equal(suite.test.length, 5);
   assert.equal(path.basename(suite.test[2][1]), 'umi-utoopack-e2e.mjs');
-  assert.equal(path.basename(suite.test[3][1]), 'cli-history-fallback.mjs');
+  assert.equal(path.basename(suite.test[3][1]), 'umi-contenthash-hmr.mjs');
+  assert.equal(path.basename(suite.test[4][1]), 'cli-history-fallback.mjs');
+  assert.deepEqual(suite.test, SUITES.umi.test.slice(0, 5));
 });
 
 test('defines the requested ecosystem suites', () => {

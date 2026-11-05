@@ -12,7 +12,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 
 | Suite | Consumer | E2E coverage |
 | --- | --- | --- |
-| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E, framework routing, CLI fallback and dev shutdown regressions, plus its qiankun slave and utoopack master E2Es |
+| `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E, contenthash HMR, framework routing, CLI fallback and dev shutdown regressions, plus its qiankun slave and utoopack master E2Es |
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build and starts its utoopack dev server |
 | `ant-design` | `ant-design/ant-design@7793cab` | Runs the production Dumi site build and the exact utoopack dev startup from `utooland/utoo#3332` |
 | `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
@@ -36,6 +36,13 @@ fixture starts the actual candidate `up dev` binary: SPA fallback must work by
 default, `--no-history-api-fallback` must restore the missing-route response, and
 missing JS/CSS files must remain errors in both modes. The CLI fixture verifies
 that the CLI resolves the same bundler candidate installed for Umi.
+
+The contenthash HMR regression starts the real Umi dev server with hashed async
+chunk filenames. The test edits a page twice, an already loaded dynamic component,
+and CSS; Chromium checks updated content, preserved React counters, stable HMR
+subscriptions and no document reload. Separate cases verify that `hot: false`
+does not enable automatic updates and that unaccepted business-module changes
+still trigger the normal full reload. The fixture is removed after each run.
 
 For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
 
