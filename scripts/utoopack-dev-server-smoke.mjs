@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -118,13 +118,21 @@ export async function waitForServer(
   while (Date.now() - started < timeout) {
     const spawnError = getSpawnError();
     if (spawnError) throw spawnError;
+    const log = getLog().replace(ANSI_PATTERN, '');
+    // Umi can keep its CLI parent alive after the worker fails to bind.
+    if (/\blisten EADDRINUSE\b/.test(log)) {
+      throw Object.assign(
+        new Error(`Utoopack dev server could not bind its port.\n${log}`),
+        { code: 'EADDRINUSE' },
+      );
+    }
     if (server.exitCode !== null || server.signalCode !== null) {
       throw new Error(
         `Utoopack dev server exited before it was ready (${exitReason(server)}).\n${getLog()}`,
       );
     }
 
-    if (READY_PATTERN.test(getLog().replace(ANSI_PATTERN, ''))) {
+    if (READY_PATTERN.test(log)) {
       try {
         const remaining = timeout - (Date.now() - started);
         const response = await fetchWithTimeout(
@@ -184,6 +192,26 @@ function killServer(server, signal) {
 
 export async function stopServer(server) {
   if (server.exitCode !== null || server.signalCode !== null) return;
+
+  if (process.platform === 'win32' && server.pid !== undefined) {
+    // Killing just the CLI parent can leave a worker holding the retry's ports.
+    await new Promise((resolve, reject) => {
+      execFile(
+        'taskkill.exe',
+        ['/PID', String(server.pid), '/T', '/F'],
+        { timeout: 5_000, windowsHide: true },
+        (error) => {
+          if (error && server.exitCode === null && server.signalCode === null) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        },
+      );
+    });
+    if (await waitForExit(server, 5_000)) return;
+    throw new Error('Utoopack dev server did not exit after taskkill.');
+  }
 
   killServer(server, 'SIGTERM');
   if (await waitForExit(server, 5_000)) return;

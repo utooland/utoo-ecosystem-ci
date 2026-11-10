@@ -2,15 +2,11 @@
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import net from 'node:net';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import {
-  startServer,
-  stopServer,
-  waitForServer,
-} from './utoopack-dev-server-smoke.mjs';
+import { startUmiServer } from './umi-dev-server.mjs';
+import { stopServer } from './utoopack-dev-server-smoke.mjs';
 
 const FIXTURE_NAME = '.ecosystem-contenthash-hmr';
 const TEMPLATE_DIRECTORY = fileURLToPath(
@@ -153,36 +149,6 @@ function businessChunks(outputPath, marker) {
   };
   visit(outputPath);
   return matches.sort();
-}
-
-async function availablePort() {
-  const listen = (probe, port) =>
-    new Promise((resolve, reject) => {
-      probe.once('error', reject);
-      probe.listen(port, '127.0.0.1', resolve);
-    });
-  const close = async (probe) => {
-    if (!probe.listening) return;
-    await new Promise((resolve, reject) =>
-      probe.close((error) => (error ? reject(error) : resolve())),
-    );
-  };
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const outer = net.createServer();
-    const inner = net.createServer();
-    try {
-      await listen(outer, 0);
-      const { port } = outer.address();
-      if (port === 65535) continue;
-      await listen(inner, port + 1);
-      return port;
-    } catch (error) {
-      if (error.code !== 'EADDRINUSE') throw error;
-    } finally {
-      await Promise.all([close(outer), close(inner)]);
-    }
-  }
-  throw new Error('Could not reserve a Umi dev server port pair');
 }
 
 function observe(page) {
@@ -487,30 +453,17 @@ async function assertDisabledHmr(page, url, fixture, observed) {
 }
 
 async function runScenario(repoDir, fixture, hot, chromium) {
-  const port = await availablePort();
-  const url = `http://127.0.0.1:${port}/`;
-  const running = startServer(repoDir, {
-    cwd: fixture.directory,
-    command: [
-      process.execPath,
-      path.join(repoDir, 'packages/umi/bin/umi.js'),
-      'dev',
-    ],
-    env: {
-      PORT: String(port),
-      STRICT_PORT: String(port),
-      NODE_ENV: 'development',
-      BROWSER: 'none',
-      FORCE_UTOOPACK: '1',
-      UMI_TELEMETRY: '0',
-      ECOSYSTEM_HMR_ENABLED: hot ? '1' : '0',
-    },
-  });
+  let running = null;
   let browser = null;
   let page = null;
   let observed = null;
   try {
-    await waitForServer(running, { url, timeout: 120_000 });
+    const started = await startUmiServer(repoDir, {
+      cwd: fixture.directory,
+      env: { ECOSYSTEM_HMR_ENABLED: hot ? '1' : '0' },
+    });
+    running = started.running;
+    const { url } = started;
     browser = await chromium.launch();
     page = await browser.newPage();
     observed = observe(page);
@@ -523,13 +476,13 @@ async function runScenario(repoDir, fixture, hot, chromium) {
         error.stack || error
       }\nState: ${JSON.stringify(current)}\nObserved: ${JSON.stringify(
         observed,
-      )}\nServer log:\n${running.getLog()}`,
+      )}\nServer log:\n${running?.getLog() || ''}`,
     );
   } finally {
     try {
       await browser?.close();
     } finally {
-      await stopServer(running.server);
+      if (running) await stopServer(running.server);
     }
   }
 }

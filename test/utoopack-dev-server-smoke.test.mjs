@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import net from 'node:net';
 import test from 'node:test';
 import {
   parseArgs,
+  startServer,
+  stopServer,
   waitForServer,
 } from '../scripts/utoopack-dev-server-smoke.mjs';
 
@@ -123,5 +126,39 @@ test('rejects a signal exit before readiness', async () => {
       },
     ),
     /signal SIGABRT[\s\S]*fatal runtime error: aborting/,
+  );
+});
+
+test('reports a real bind conflict before a still-running child times out', async (context) => {
+  const occupied = net.createServer();
+  await new Promise((resolve) => occupied.listen(0, '127.0.0.1', resolve));
+  context.after(() => new Promise((resolve) => occupied.close(resolve)));
+  const { port } = occupied.address();
+  const running = startServer(process.cwd(), {
+    cwd: '.',
+    command: [
+      process.execPath,
+      '-e',
+      `const net = require('node:net');
+       const server = net.createServer();
+       server.on('error', (error) => console.error(error.message));
+       server.listen(${port}, '127.0.0.1');
+       setInterval(() => {}, 1000);`,
+    ],
+  });
+  context.after(() => stopServer(running.server));
+
+  await assert.rejects(
+    waitForServer(running, {
+      url: `http://127.0.0.1:${port}/`,
+      timeout: 2_000,
+      pollInterval: 5,
+    }),
+    (error) => {
+      assert.equal(error.code, 'EADDRINUSE');
+      assert.match(error.message, new RegExp(`127\\.0\\.0\\.1:${port}`));
+      assert.equal(running.server.exitCode, null);
+      return true;
+    },
   );
 });
