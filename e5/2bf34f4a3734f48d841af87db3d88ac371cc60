@@ -1,0 +1,29 @@
+scripts/umi-contenthash-hmr.mjs
+  s_886c71bba309c4::t_a5016ffd308595 8-9,456,461-466,479,485
+test/umi-dev-server.test.mjs
+  s_886c71bba309c4::t_9d29745cd85936 1-170
+test/utoopack-dev-server-smoke.test.mjs
+  s_886c71bba309c4::t_e776ed4515c22d 2,6-7,131-162
+  s_886c71bba309c4::t_02c5db505b2996 163-164
+scripts/umi-dev-server.mjs
+  s_886c71bba309c4::t_a5016ffd308595 1-130
+scripts/utoopack-dev-server-smoke.mjs
+  s_886c71bba309c4::t_a5016ffd308595 3,121-128,135,196-214
+  s_886c71bba309c4::t_72d8306641a5ca 215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e52bf34f4a3734f48d841af87db3d88ac371cc60",
+  "prompts": {},
+  "sessions": {
+    "s_886c71bba309c4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c475-33bd-7e91-8be1-01a146048d65",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zoomdong <zoomdong@U-0K627Y2C-2335.local>"
+    }
+  }
+}
