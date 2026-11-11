@@ -19,7 +19,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 | `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds and starts a minimal site based on Dumi's official template with utoopack |
 | `evjs` | `afx-team/evjs@main` | Builds EVJS packages, starts its basic app with `ev dev`, and runs its `bundler-utoopack` Playwright project |
 | `evjs-shared-runtime` | `afx-team/evjs@main` | Enables `sharedRuntime` in the disposable two-page MPA example, runs its Chromium E2E, and verifies both pages load the same runtime asset last |
-| `evjs-h5` | `afx-team/evjs@main` | Builds a public EVJS MPA fixture targeting Android 5 / iOS 8, then checks real `marked` rendering and named RegExp behavior in Chromium |
+| `evjs-h5` | `afx-team/evjs@main` | Checks dev SSR with three named server entries and source maps, then builds an Android 5 / iOS 8 MPA and checks `marked` rendering and named RegExp behavior in Chromium |
 
 Every suite verifies that its expected output directory exists and is non-empty. Node.js 22 is used in CI, satisfying utoopack's Node.js 20+ requirement.
 
@@ -47,6 +47,8 @@ still trigger the normal full reload. The fixture is removed after each run.
 For EVJS, the runner also verifies the candidate from `packages/bundler-utoopack`'s module-resolution context. Its upstream lockfile currently contains a workspace-local `@utoo/pack` entry, so the disposable checkout removes that stale generated copy after installation before running E2E; this prevents the root override from producing a false-positive result.
 
 The `evjs-h5` suite uses public EVJS MPA pages with the H5 compilation target `android 5, ios 8`. It copies its fixture workspace before dependency installation so the application imports the real `marked` package. Its production build exercises SWC's RegExp lowering and runtime helper resolution; Chromium then checks Markdown rendering, named groups, backreferences, and replacements. The test also checks the underlying RegExp source to ensure native Chromium support cannot hide a missing transform. A separate assertion resolves `_wrap_reg_exp` from the candidate Pack's dependency context, preventing a newer helpers package hoisted by other EVJS tools from masking an incompatible candidate. Android 5 / iOS 8 specify the compilation target; the browser assertions run in Chromium.
+
+The same fixture has two nested SSR pages, `/effects/first.html` and `/effects/second.html`, importing a shared component, shared CSS, different page CSS, and EVJS server helpers, plus a client page that imports a server function. Its dev check requires exactly two named page server entries plus the server runtime, verifies shared JavaScript chunks and their source maps, and rejects `conflicting effects` even if EVJS still prints its readiness banner. This covers server CSS chunks and maps that previously collided at `index.css` and `index.css.map`. Both pages must return HTTP 200 with their distinct content already rendered in the response HTML. The check then changes one page's CSS and restores it, polling for each emitted change while checking both SSR responses and preserving the sibling's styles.
 
 ## Run locally
 

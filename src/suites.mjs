@@ -23,6 +23,9 @@ const evjsSharedRuntime = fileURLToPath(
 const prepareEvjsH5 = fileURLToPath(
   new URL('../scripts/prepare-evjs-h5.mjs', import.meta.url),
 );
+const evjsH5ServerEffects = fileURLToPath(
+  new URL('../scripts/evjs-h5-server-effects.mjs', import.meta.url),
+);
 const utoopackDevServerSmoke = fileURLToPath(
   new URL('../scripts/utoopack-dev-server-smoke.mjs', import.meta.url),
 );
@@ -232,6 +235,7 @@ export const SUITES = Object.freeze({
     install: [['node', prepareEvjsH5], ...evjsSuite.install],
     test: [
       evjsSuite.test[0],
+      ['node', evjsH5ServerEffects],
       [
         'npm',
         'run',

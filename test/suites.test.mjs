@@ -143,6 +143,7 @@ test('EVJS H5 prepares its workspace before installation and tests the candidate
   assert.deepEqual(suite.install.slice(1), SUITES.evjs.install);
   assert.deepEqual(suite.test, [
     SUITES.evjs.test[0],
+    ['node', suite.test[1][1]],
     [
       'npm',
       'run',
@@ -152,6 +153,7 @@ test('EVJS H5 prepares its workspace before installation and tests the candidate
       'e2e/cases/ecosystem-h5.ts',
     ],
   ]);
+  assert.equal(path.basename(suite.test[1][1]), 'evjs-h5-server-effects.mjs');
   assert.equal(suite.directManifest, SUITES.evjs.directManifest);
   assert.equal(suite.candidateResolveFrom, SUITES.evjs.candidateResolveFrom);
   assert.deepEqual(
