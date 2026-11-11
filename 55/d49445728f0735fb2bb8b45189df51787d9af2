@@ -1,0 +1,80 @@
+fixtures/evjs-h5/app/src/pages/effects/second/page.tsx
+  s_be38007f9e3e43::t_390695adcb1f68 2,4-5,7
+  s_be38007f9e3e43::t_2fbd0782a74dfc 3
+  s_be38007f9e3e43::t_bc42d80db7fe20 1,6
+fixtures/evjs-h5/app/src/pages/effects/second/page.css
+  s_be38007f9e3e43::t_0562e79febe225 2
+  s_be38007f9e3e43::t_2fbd0782a74dfc 1,3
+src/suites.mjs
+  s_be38007f9e3e43::t_390695adcb1f68 26-28,238
+fixtures/evjs-h5/app/src/apis/greeting.server.ts
+  s_be38007f9e3e43::t_29899a0fa055f5 1-5
+test/evjs-utoopack-dev-smoke.test.mjs
+  s_be38007f9e3e43::t_0562e79febe225 83-98
+  s_be38007f9e3e43::t_3689285a4cf895 62-82
+scripts/evjs-utoopack-dev-smoke.mjs
+  s_be38007f9e3e43::t_390695adcb1f68 33-34,71,87-89
+  s_be38007f9e3e43::t_0562e79febe225 72,94
+test/prepare-evjs-h5.test.mjs
+  s_be38007f9e3e43::t_3689285a4cf895 43-47
+fixtures/evjs-h5/app/src/pages/effects/shared-panel.css
+  s_be38007f9e3e43::t_2fbd0782a74dfc 1-4
+fixtures/evjs-h5/app/src/pages/effects/first/page.css
+  s_be38007f9e3e43::t_2fbd0782a74dfc 1,3
+  s_be38007f9e3e43::t_0562e79febe225 2
+fixtures/evjs-h5/app/src/pages/effects/shared-panel.tsx
+  s_be38007f9e3e43::t_29899a0fa055f5 1,5,11
+  s_be38007f9e3e43::t_2fbd0782a74dfc 2,7
+  s_be38007f9e3e43::t_df02a2a0f0c208 3
+  s_be38007f9e3e43::t_390695adcb1f68 4,6,8,10,12-14
+  s_be38007f9e3e43::t_57149354ab4add 9
+fixtures/evjs-h5/app/src/pages/page.tsx
+  s_be38007f9e3e43::t_29899a0fa055f5 3,12,26-29
+fixtures/evjs-h5/app/src/pages/effects/second/page.config.ts
+  s_be38007f9e3e43::t_390695adcb1f68 1-6
+README.md
+  s_be38007f9e3e43::t_3689285a4cf895 22
+  s_be38007f9e3e43::t_0562e79febe225 51
+  s_be38007f9e3e43::t_f8d950e51a98c3 52
+test/suites.test.mjs
+  s_be38007f9e3e43::t_390695adcb1f68 146,156
+fixtures/evjs-h5/app/package.json
+  s_be38007f9e3e43::t_390695adcb1f68 16
+scripts/evjs-h5-server-effects.mjs
+  s_be38007f9e3e43::t_4c155a698098a8 4-5,9,12-14,20-30,49-50,84,86
+  s_be38007f9e3e43::t_2f9e89c70636e4 15-19,32,35-45,47,104
+  s_be38007f9e3e43::t_d436cbc3f40946 58,65,67,74,76,92,95,97
+  s_be38007f9e3e43::t_df02a2a0f0c208 69-71
+  s_be38007f9e3e43::t_11eba756c7787d 90-91,96,101
+  s_be38007f9e3e43::t_0562e79febe225 10,31,33-34,46,48,51-57,59-64,88-89,93-94,98-100,102-103
+  s_be38007f9e3e43::t_390695adcb1f68 1-3,6-8,11,66,68,72-73,75,77-83,85,87,105-112
+fixtures/evjs-h5/app/src/pages/effects/first/page.config.ts
+  s_be38007f9e3e43::t_390695adcb1f68 1-6
+fixtures/evjs-h5/app/src/pages/effects/first/page.tsx
+  s_be38007f9e3e43::t_390695adcb1f68 2,4-5,7
+  s_be38007f9e3e43::t_2fbd0782a74dfc 3
+  s_be38007f9e3e43::t_bc42d80db7fe20 1,6
+fixtures/evjs-h5/app/ev.config.ts
+  s_be38007f9e3e43::t_4c155a698098a8 20
+  s_be38007f9e3e43::t_390695adcb1f68 1-2,4-13,16-19,21-26,31
+  s_be38007f9e3e43::t_2f5161c6840c36 14-15
+test/evjs-h5-server-effects.test.mjs
+  s_be38007f9e3e43::t_3689285a4cf895 1-6,8-11,13-30
+  s_be38007f9e3e43::t_29899a0fa055f5 7,12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "55d49445728f0735fb2bb8b45189df51787d9af2",
+  "prompts": {},
+  "sessions": {
+    "s_be38007f9e3e43": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9a1-a60d-7230-ad6e-0d296f56c5a4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zoomdong <1344492820@qq.com>"
+    }
+  }
+}
