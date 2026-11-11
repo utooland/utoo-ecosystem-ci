@@ -40,6 +40,11 @@ test('prepares an isolated H5 workspace and preserves candidate overrides on rep
   assert.equal(pkg.dependencies['@swc/helpers'], undefined);
   assert.equal(pkg.overrides, undefined);
   assert.ok(fs.existsSync(path.join(example, 'src', 'pages', 'page.tsx')));
+  for (const name of ['first', 'second']) {
+    const pageDir = path.join(example, 'src', 'pages', 'effects', name);
+    assert.ok(fs.existsSync(path.join(pageDir, 'page.tsx')));
+    assert.match(fs.readFileSync(path.join(pageDir, 'page.config.ts'), 'utf8'), /render: 'ssr'/);
+  }
   const casePath = path.join(directory, 'e2e', 'cases', 'ecosystem-h5.ts');
   assert.ok(fs.existsSync(casePath));
 

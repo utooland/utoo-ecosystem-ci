@@ -30,8 +30,8 @@ function exitReason(server) {
   return `exit code ${server.exitCode}`;
 }
 
-export function startServer(repoDir) {
-  const exampleDir = path.join(repoDir, 'examples/basic');
+export function startServer(repoDir, exampleName = 'basic') {
+  const exampleDir = path.join(repoDir, 'examples', exampleName);
   const cliPath = path.join(repoDir, 'packages/cli/bin/ev.js');
   const server = spawn(process.execPath, [cliPath, 'dev', '--no-shortcuts'], {
     cwd: exampleDir,
@@ -68,6 +68,8 @@ export async function waitForServer(
     timeout = 120_000,
     pollInterval = 250,
     fetchImpl = globalThis.fetch,
+    failurePattern,
+    isReady,
   } = {},
 ) {
   const started = Date.now();
@@ -82,11 +84,14 @@ export async function waitForServer(
     }
 
     const log = getLog();
+    if (failurePattern?.test(log)) {
+      throw new Error(`EVJS dev server reported a build failure.\n${log}`);
+    }
     const url = fetchableUrl(log);
     if (url && API_READY_PATTERN.test(log.replace(ANSI_PATTERN, ''))) {
       try {
         const response = await fetchImpl(url);
-        if (response.ok) return;
+        if (response.ok && (!isReady || await isReady(url))) return url;
       } catch {
         // The readiness banner can precede the first accepted connection.
       }

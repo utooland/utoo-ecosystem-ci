@@ -59,3 +59,40 @@ test('EVJS dev smoke rejects a signal exit before readiness', async () => {
     /signal SIGABRT[\s\S]*fatal runtime error: aborting/,
   );
 });
+
+test('EVJS dev smoke fails on effect conflicts even when both servers start', async () => {
+  const log = [
+    'conflicting effects for the same key (key length: 89 bytes)',
+    'API server listening at:',
+    'App listening at:\n  Local: http://localhost:3000',
+  ].join('\n');
+  await assert.rejects(
+    waitForServer({
+      server: { exitCode: null, signalCode: null },
+      getLog: () => log,
+      getSpawnError: () => null,
+    }, {
+      failurePattern: /conflicting effects for the same key/i,
+      fetchImpl: async () => {
+        assert.fail('A readiness response must not hide a build failure');
+      },
+    }),
+    /conflicting effects for the same key/,
+  );
+});
+
+test('EVJS dev smoke polls additional rebuild readiness after HTTP becomes ready', async () => {
+  let checks = 0;
+  const url = await waitForServer({
+    server: { exitCode: null, signalCode: null },
+    getLog: () => 'API server listening at:\nApp listening at:\n  Local: http://localhost:3000',
+    getSpawnError: () => null,
+  }, {
+    timeout: 1_000,
+    pollInterval: 1,
+    fetchImpl: async () => ({ ok: true }),
+    isReady: async () => ++checks >= 3,
+  });
+  assert.equal(url, 'http://127.0.0.1:3000/');
+  assert.equal(checks, 3);
+});
