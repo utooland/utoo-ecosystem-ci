@@ -15,7 +15,7 @@ Continuously validates published releases and source-built `@utoo/pack` candidat
 | `umi` | `umijs/umi@master` | Runs Umi's native utoopack browser E2E, contenthash HMR, framework routing, CLI fallback and dev shutdown regressions, plus its qiankun slave and utoopack master E2Es |
 | `ant-design-pro` | `ant-design/ant-design-pro@master` | Runs the production Umi Max + utoopack build and starts its utoopack dev server |
 | `ant-design` | `ant-design/ant-design@7793cab` | Runs the production Dumi site build and the exact utoopack dev startup from `utooland/utoo#3332` |
-| `father` | `umijs/father@master` | Builds Father, then builds its utoopack UMD example |
+| `father` | `umijs/father@master` | Builds Father and its utoopack UMD example; checks minified inline CSS output and runtime with source maps disabled |
 | `dumi` | `umijs/dumi@master` | Builds Dumi from source, then builds and starts a minimal site based on Dumi's official template with utoopack |
 | `evjs` | `afx-team/evjs@main` | Builds EVJS packages, starts its basic app with `ev dev`, and runs its `bundler-utoopack` Playwright project |
 | `evjs-shared-runtime` | `afx-team/evjs@main` | Enables `sharedRuntime` in the disposable two-page MPA example, runs its Chromium E2E, and verifies both pages load the same runtime asset last |

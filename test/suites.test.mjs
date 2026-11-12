@@ -165,12 +165,16 @@ test('EVJS H5 prepares its workspace before installation and tests the candidate
   ]);
 });
 
-test('Father validates only its utoopack UMD example', () => {
+test('Father validates its UMD example and minified inline CSS regression', () => {
   const commands = SUITES.father.test.map((command) => command.join(' '));
-  assert.deepEqual(commands, [
+  assert.deepEqual(commands.slice(0, 2), [
     'corepack pnpm tsc',
     'corepack pnpm --dir examples/utoo-pack build',
   ]);
+  assert.equal(path.basename(SUITES.father.test[2][1]), 'father-inline-css.mjs');
+  assert.ok(
+    SUITES.father.nonEmptyDirectories.includes('examples/ecosystem-inline-css/dist/umd'),
+  );
 });
 
 test('Dumi builds its local source with a minimal utoopack site example', () => {
