@@ -14,6 +14,9 @@ const cliHistoryFallback = fileURLToPath(
 const prepareDumiExample = fileURLToPath(
   new URL('../scripts/prepare-dumi-example.mjs', import.meta.url),
 );
+const fatherInlineCss = fileURLToPath(
+  new URL('../scripts/father-inline-css.mjs', import.meta.url),
+);
 const evjsUtoopackDevSmoke = fileURLToPath(
   new URL('../scripts/evjs-utoopack-dev-smoke.mjs', import.meta.url),
 );
@@ -174,12 +177,15 @@ export const SUITES = Object.freeze({
     packageManager: 'pnpm',
     install: [pnpm('install', '--no-frozen-lockfile')],
     test: [
-      // Bootstrap the local father binary used by the example. The ecosystem
-      // signal itself is the utoopack UMD example build below.
+      // Bootstrap the local father binary used by the example and regression.
       pnpm('tsc'),
       pnpm('--dir', 'examples/utoo-pack', 'build'),
+      ['node', fatherInlineCss],
     ],
-    nonEmptyDirectories: ['examples/utoo-pack/dist'],
+    nonEmptyDirectories: [
+      'examples/utoo-pack/dist',
+      'examples/ecosystem-inline-css/dist/umd',
+    ],
   },
   dumi: {
     title: 'Dumi',
