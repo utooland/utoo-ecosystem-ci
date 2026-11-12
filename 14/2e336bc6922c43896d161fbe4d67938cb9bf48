@@ -1,0 +1,42 @@
+test/father-inline-css.test.mjs
+  s_3d4ccbcaa79061::t_002056143358a9 1-10,15-28,33,38,45-49,55
+  s_3d4ccbcaa79061::t_638ca10e32ca27 39-44
+  s_3d4ccbcaa79061::t_4fa6ddee48dd0c 11-14,29-32,34-37,50-54
+fixtures/father-inline-css/.fatherrc.ts
+  s_3d4ccbcaa79061::t_002056143358a9 1-7,11-12
+  s_3d4ccbcaa79061::t_ca9632425435a6 9
+  s_3d4ccbcaa79061::t_91c42fdf68ee2b 8,10
+fixtures/father-inline-css/src/style.less
+  s_3d4ccbcaa79061::t_002056143358a9 1-5
+test/suites.test.mjs
+  s_3d4ccbcaa79061::t_4fa6ddee48dd0c 175-177
+  s_3d4ccbcaa79061::t_002056143358a9 168,170,174
+src/suites.mjs
+  s_3d4ccbcaa79061::t_002056143358a9 17-19,180,183-187
+fixtures/father-inline-css/src/index.ts
+  s_3d4ccbcaa79061::t_002056143358a9 1-5
+fixtures/father-inline-css/package.json
+  s_3d4ccbcaa79061::t_002056143358a9 1-5
+scripts/father-inline-css.mjs
+  s_3d4ccbcaa79061::t_002056143358a9 1-17,24-74,76-78,83-97
+  s_3d4ccbcaa79061::t_4fa6ddee48dd0c 18-23,79-82
+  s_3d4ccbcaa79061::t_638ca10e32ca27 75
+README.md
+  s_3d4ccbcaa79061::t_002056143358a9 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "142e336bc6922c43896d161fbe4d67938cb9bf48",
+  "prompts": {},
+  "sessions": {
+    "s_3d4ccbcaa79061": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cd9f-5c67-7253-bc9c-ff16038b5d43",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "zoomdong <1344492820@qq.com>"
+    }
+  }
+}
